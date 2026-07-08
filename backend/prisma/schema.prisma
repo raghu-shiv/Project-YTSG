@@ -1,0 +1,220 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+    local
+    google
+}
+
+enum UserRole {
+    user
+    admin
+}
+
+enum CreditTransactionType {
+    purchase
+    subscription_grant
+    usage
+    refund
+}
+
+enum SubscriptionPlan {
+    free
+    bundle_30
+    bundle_60
+}
+
+enum SubscriptionStatus {
+    active
+    cancelled
+    expired
+}
+
+enum PaymentStatus {
+    created
+    paid
+    failed
+    refunded
+}
+
+enum ScriptStatus {
+    draft
+    generating
+    completed
+    failed
+}
+
+enum VideoType {
+    educational
+    tech_review
+    faceless
+    general
+}
+
+model User {
+    id            String       @id @default(uuid())
+    email         String       @unique
+    passwordHash  String?
+    name          String?
+    avatarUrl     String?
+    authProvider  AuthProvider @default(local)
+    googleId      String?      @unique
+    role          UserRole     @default(user)
+    creditBalance Int          @default(0)
+    createdAt     DateTime     @default(now()) @map("created_at")
+    updatedAt     DateTime     @updatedAt @map("updated_at")
+
+    creditTransactions CreditTransaction[]
+    subscriptions      Subscription[]
+    payments           Payment[]
+    scripts            Script[]
+    aiUsageLogs        AiUsageLog[]
+
+    @@map("users")
+}
+
+model CreditTransaction {
+    id           String                @id @default(uuid())
+    userId       String                @map("user_id")
+    type         CreditTransactionType
+    amount       Int
+    balanceAfter Int                   @map("balance_after")
+    referenceId  String?               @map("reference_id")
+    description  String?
+    createdAt    DateTime              @default(now()) @map("created_at")
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@map("credit_transactions")
+}
+
+model Subscription {
+    id                     String             @id @default(uuid())
+    userId                 String             @map("user_id")
+    plan                   SubscriptionPlan
+    creditsPerMonth        Int                @map("credits_per_month")
+    status                 SubscriptionStatus
+    razorpaySubscriptionId String?            @map("razorpay_subscription_id")
+    currentPeriodStart     DateTime?          @map("current_period_start")
+    currentPeriodEnd       DateTime?          @map("current_period_end")
+    createdAt              DateTime           @default(now()) @map("created_at")
+    updatedAt              DateTime           @updatedAt @map("updated_at")
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@map("subscriptions")
+}
+
+model Payment {
+    id                String        @id @default(uuid())
+    userId            String        @map("user_id")
+    razorpayOrderId   String        @unique @map("razorpay_order_id")
+    razorpayPaymentId String?       @map("razorpay_payment_id")
+    amount            Decimal       @db.Decimal(10, 2)
+    currency          String        @default("INR")
+    status            PaymentStatus
+    creditsPurchased  Int           @map("credits_purchased")
+    createdAt         DateTime      @default(now()) @map("created_at")
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@map("payments")
+}
+
+model Niche {
+    id          String   @id @default(uuid())
+    name        String
+    description String?
+    keywords    String[]
+    createdAt   DateTime @default(now()) @map("created_at")
+
+    scripts Script[]
+
+    @@map("niches")
+}
+
+model Script {
+    id                   String       @id @default(uuid())
+    userId               String       @map("user_id")
+    nicheId              String?      @map("niche_id")
+    title                String?
+    topic                String
+    content              String?
+    outline              Json?
+    status               ScriptStatus @default(draft)
+    videoType            VideoType    @default(general) @map("video_type")
+    wordCount            Int?         @map("word_count")
+    estimatedDurationSec Int?         @map("estimated_duration_sec")
+    modelUsed            String?      @map("model_used")
+    creditsUsed          Int          @default(0) @map("credits_used")
+    createdAt            DateTime     @default(now()) @map("created_at")
+    updatedAt            DateTime     @updatedAt @map("updated_at")
+
+    user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+    niche             Niche?             @relation(fields: [nicheId], references: [id], onDelete: SetNull)
+    versions          ScriptVersion[]
+    seoSuggestions    SeoSuggestion?
+    thumbnailConcepts ThumbnailConcept[]
+
+    @@map("scripts")
+}
+
+model ScriptVersion {
+    id            String   @id @default(uuid())
+    scriptId      String   @map("script_id")
+    content       String
+    versionNumber Int      @map("version_number")
+    createdAt     DateTime @default(now()) @map("created_at")
+
+    script Script @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+
+    @@map("script_versions")
+}
+
+model SeoSuggestion {
+    id               String   @id @default(uuid())
+    scriptId         String   @unique @map("script_id")
+    keywords         String[]
+    hashtags         String[]
+    tags             String[]
+    titleSuggestions String[] @map("title_suggestions")
+    createdAt        DateTime @default(now()) @map("created_at")
+
+    script Script @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+
+    @@map("seo_suggestions")
+}
+
+model ThumbnailConcept {
+    id                    String   @id @default(uuid())
+    scriptId              String   @map("script_id")
+    conceptDescription    String   @map("concept_description")
+    textOverlaySuggestion String?  @map("text_overlay_suggestion")
+    imageUrl              String?  @map("image_url")
+    createdAt             DateTime @default(now()) @map("created_at")
+
+    script Script @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+
+    @@map("thumbnail_concepts")
+}
+
+model AiUsageLog {
+    id               String   @id @default(uuid())
+    userId           String   @map("user_id")
+    endpoint         String
+    model            String
+    promptTokens     Int      @map("prompt_tokens")
+    completionTokens Int      @map("completion_tokens")
+    costUsd          Decimal  @map("cost_usd")
+    createdAt        DateTime @default(now()) @map("created_at")
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@map("ai_usage_logs")
+}
