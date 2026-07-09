@@ -1,23 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Badge, LoadingSpinner } from "@/components/ui";
-import { apiClient } from "@/lib/api";
+import { useScriptsStore } from "@/stores";
 
 export default function ScriptsPage() {
   const router = useRouter();
-  const [scripts, setScripts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const scripts = useScriptsStore((state) => state.scripts);
+  const isLoading = useScriptsStore((state) => state.isLoading);
+  const fetchScripts = useScriptsStore((state) => state.fetchScripts);
 
   useEffect(() => {
-    apiClient("/scripts?limit=50")
-      .then((data) => {
-        setScripts(data.scripts || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+    fetchScripts();
+  }, [fetchScripts]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -32,7 +28,7 @@ export default function ScriptsPage() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return <LoadingSpinner size="lg" className="py-20" />;
   }
 

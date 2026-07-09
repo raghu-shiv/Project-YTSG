@@ -31,13 +31,18 @@
 - `backend/tsconfig.json` - TypeScript config
 - `backend/nest-cli.json` - NestJS CLI config
 - `backend/Dockerfile.dev` - Dev container
+- `backend/startup.sh` - Startup script with auto-migration
 - `backend/prisma/schema.prisma` - Full DB schema (10 models)
 - `backend/src/main.ts` - Entry point (Helmet, CORS, ValidationPipe)
-- `backend/src/app.module.ts` - Root module
+- `backend/src/app.module.ts` - Root module (updated with BullMQ, SSE, Admin, Email)
 - `backend/src/prisma/prisma.service.ts` - DB connection service
 - `backend/src/prisma/prisma.module.ts`
 - `backend/src/common/guards/jwt-auth.guard.ts` - JWT guard
+- `backend/src/common/guards/roles.guard.ts` - Role-based access guard
+- `backend/src/common/guards/throttle-tier.guard.ts` - Per-tier rate limiting
 - `backend/src/common/decorators/public.decorator.ts` - Public route decorator
+- `backend/src/common/decorators/roles.decorator.ts` - @Roles() decorator
+- `backend/src/common/decorators/current-user.decorator.ts` - @CurrentUser() decorator
 - `backend/src/auth/jwt.strategy.ts` - Passport JWT strategy
 - `backend/src/auth/auth.service.ts` - Register/login/google auth logic
 - `backend/src/auth/auth.controller.ts` - Auth endpoints
@@ -50,34 +55,56 @@
 - `backend/src/script/script.module.ts`
 - `backend/src/ai-provider/ai-provider.service.ts` - OpenRouter wrapper
 - `backend/src/ai-provider/ai-provider.module.ts`
-- `backend/src/credits/credits.service.ts` - Balance & transactions
+- `backend/src/credits/credits.service.ts` - Balance & transactions (with cron jobs)
 - `backend/src/credits/credits.controller.ts`
 - `backend/src/credits/credits.module.ts`
 - `backend/src/payments/payments.service.ts` - Razorpay integration
 - `backend/src/payments/payments.controller.ts`
 - `backend/src/payments/payments.module.ts`
+- `backend/src/payments/payments-webhook.controller.ts` - Webhook handler
 - `backend/src/seo/seo.module.ts`
 - `backend/src/thumbnail/thumbnail.module.ts`
+- `backend/src/queue/queue.module.ts` - BullMQ queue module
+- `backend/src/queue/script-generation.service.ts` - Queue enqueuer
+- `backend/src/queue/script-generation.processor.ts` - Queue worker
+- `backend/src/sse/sse.module.ts` - SSE module
+- `backend/src/sse/sse.service.ts` - SSE event service
+- `backend/src/sse/sse.controller.ts` - SSE streaming endpoint
+- `backend/src/admin/admin.module.ts` - Admin module
+- `backend/src/admin/admin.service.ts` - Admin queries
+- `backend/src/admin/admin.controller.ts` - Admin endpoints
+- `backend/src/email/email.module.ts` - Email module
+- `backend/src/email/email.service.ts` - Email notification service
 
 #### Frontend (Next.js 16):
 
-- `frontend/package.json` - Dependencies
+- `frontend/package.json` - Dependencies (with @tailwindcss/postcss)
 - `frontend/tsconfig.json`
 - `frontend/next.config.ts`
+- `frontend/postcss.config.js` - PostCSS config for Tailwind v4
 - `frontend/Dockerfile.dev`
 - `frontend/src/lib/auth.ts` - Better-Auth config
 - `frontend/src/lib/api.ts` - API client helper
-- `frontend/src/app/globals.css` - Tailwind CSS
+- `frontend/src/app/globals.css` - Tailwind CSS v4 with @theme block
 - `frontend/src/app/layout.tsx` - Root layout
-- `frontend/src/app/page.tsx` - Landing page
+- `frontend/src/app/page.tsx` - Landing page (with auth redirect, AuthNav)
 - `frontend/src/app/login/page.tsx` - Login page
 - `frontend/src/app/register/page.tsx` - Register page
-- `frontend/src/app/dashboard/layout.tsx` - Dashboard sidebar layout
+- `frontend/src/app/dashboard/layout.tsx` - Dashboard sidebar layout (with Admin nav)
 - `frontend/src/app/dashboard/page.tsx` - Script generator wizard
 - `frontend/src/app/dashboard/scripts/page.tsx` - Script library
-- `frontend/src/app/dashboard/scripts/[id]/page.tsx` - Script detail
+- `frontend/src/app/dashboard/scripts/[id]/page.tsx` - Script detail (tabs: script/seo/thumbnail)
 - `frontend/src/app/dashboard/billing/page.tsx` - Billing & credits
 - `frontend/src/app/dashboard/settings/page.tsx` - Profile settings
+- `frontend/src/app/dashboard/admin/page.tsx` - Admin panel (users table, stats, credit modal)
+- `frontend/src/components/ui/index.ts` - UI component barrel export
+- `frontend/src/components/ui/Button.tsx` - Reusable Button component
+- `frontend/src/components/ui/Input.tsx` - Reusable Input component
+- `frontend/src/components/ui/Card.tsx` - Reusable Card component
+- `frontend/src/components/ui/Badge.tsx` - Reusable Badge component
+- `frontend/src/components/ui/LoadingSpinner.tsx` - Reusable spinner
+- `frontend/src/components/AuthNav.tsx` - Auth-aware navigation component
+- `frontend/src/components/InlineEditor.tsx` - Auto-saving script editor with download
 
 ### Session 3: Documentation
 
@@ -87,9 +114,136 @@
   - `AGENTS.md` - This file (agent activity log)
   - `PLANS.md` - Architecture decisions & design plans
 
+## 2026-07-08: UI Refactoring & Post-MVP Implementation
+
+### Session 4: UI Design System & Component Refactoring
+
+- **Mode**: ACT MODE
+- **Activity**: Refactored monolithic page code into reusable component library, applied modern design system
+- **Components Created**:
+  - `frontend/src/components/ui/Button.tsx` - 5 variants, 3 sizes, loading state
+  - `frontend/src/components/ui/Input.tsx` - Label, error, icon support
+  - `frontend/src/components/ui/Card.tsx` - 3 variants, 4 padding sizes
+  - `frontend/src/components/ui/Badge.tsx` - 5 color variants
+  - `frontend/src/components/ui/LoadingSpinner.tsx` - 3 sizes
+  - `frontend/src/components/AuthNav.tsx` - Conditional auth state rendering
+  - `frontend/src/components/InlineEditor.tsx` - Auto-saving script editor
+- **Design System**: CSS variables in @theme block, custom animations (fadeIn/slideIn), smooth scrollbar
+- **Pages Refactored**: Landing (hero/stats/features/pricing/CTA), Login, Register, Dashboard Layout, Dashboard Main, Scripts List, Script Detail, Billing, Settings
+- **CSS Fixes**: Added postcss.config.js, @tailwindcss/postcss dep, @theme block for Tailwind v4
+
+### Session 5: Post-MVP Features (Batch 1)
+
+- **Mode**: ACT MODE
+- **Activity**: Implemented roadmap features for production readiness
+- **Backend Features**:
+  - **BullMQ Queue**: Background job processing for AI generation with retry logic
+  - **SSE Streaming**: Real-time script generation progress via Server-Sent Events
+  - **Admin Panel**: User management, credit adjustments, platform stats
+  - **Email Service**: Welcome, credit low, generation complete notifications
+  - **Webhook Handler**: Razorpay signature verification, subscription auto-renewal
+  - **Rate Limiting**: Per-tier (free: 10/min, pro: 60/min)
+  - **Role-Based Access**: @Roles('admin') guard, @CurrentUser() decorator
+- **Frontend Features**:
+  - **Admin UI**: Tabbed users/stats view, user table with expandable details, credit modal
+  - **Inline Editor**: Debounced auto-save, download as .txt/.docx
+  - **Conditional Admin Nav**: Only visible for admin users
+- **Infrastructure**:
+  - Updated `backend/src/app.module.ts` with BullModule, ScheduleModule, all new modules
+  - Updated `.gitignore` with comprehensive coverage
+  - Updated all markdown docs to reflect current state
+
+## 2026-07-09: Global State Management & Post-MVP Batch 2
+
+### Session 6: Zustand State Management & Credit Balance Fix
+
+- **Mode**: ACT MODE
+- **Activity**: Implemented Zustand global state management and fixed sidebar credit balance display issue
+- **Root Cause Fixed**: Auth endpoints (`/auth/login`, `/auth/register`) returned user objects without `creditBalance`. The Zustand store saved this incomplete user, so the sidebar always showed 0.
+- **Fix**: Added `creditBalance: user.creditBalance` to all auth response objects in `backend/src/auth/auth.service.ts`
+- **Stores Created**:
+  - `frontend/src/stores/auth-store.ts` - Auth state with localStorage persistence (user, token, login, logout, fetchProfile, updateCredits)
+  - `frontend/src/stores/ui-store.ts` - UI state (sidebar open/close toggle)
+  - `frontend/src/stores/scripts-store.ts` - Scripts CRUD, generation with SSE progress tracking, loading state
+  - `frontend/src/stores/credits-store.ts` - Credit balance, transactions, purchase flow — syncs with auth store
+  - `frontend/src/stores/index.ts` - Barrel export for all stores
+
+### Session 7: Frontend Store Refactoring
+
+- **Mode**: ACT MODE
+- **Activity**: Refactored all frontend pages to use Zustand stores instead of local state + direct API calls
+- **Pages Refactored**:
+  - `dashboard/page.tsx` -> Uses `useScriptsStore` + `useCreditsStore` (generation, recent scripts, balance)
+  - `dashboard/scripts/page.tsx` -> Uses `useScriptsStore` (script list, loading state)
+  - `dashboard/scripts/[id]/page.tsx` -> Uses `useScriptsStore` (script detail, delete, regenerate, tab navigation)
+  - `dashboard/billing/page.tsx` -> Uses `useCreditsStore` (reactive balance, post-purchase refresh)
+  - `dashboard/settings/page.tsx` -> Uses `useAuthStore` (profile from store, updates sync to store)
+  - `dashboard/layout.tsx` -> Uses `useAuthStore` + `useUIStore` (auth state, sidebar toggle)
+  - `AuthNav.tsx` -> Uses `useAuthStore` (auth state from store)
+  - `page.tsx` (landing) -> Uses `useAuthStore` (redirect check from store)
+  - `login/page.tsx` -> Uses `useAuthStore` (login calls store's login())
+  - `register/page.tsx` -> Uses `useAuthStore` (register calls store's login())
+- **Store Enhancements**: Added `isLoading` to scripts-store, fixed API response parsing (handles both `data.scripts` and direct array responses)
+
+### Session 8: Multi-Model AI Fallback & Image Generation
+
+- **Mode**: ACT MODE
+- **Activity**: Rewrote AI provider service with automatic model fallback and image generation capabilities
+- **Backend Changes**:
+  - `backend/src/ai-provider/ai-provider.service.ts` - Complete rewrite with:
+    - **6 models** in priority chain: GPT-4o-mini -> Gemini Flash -> DeepSeek -> Llama 3.1 -> GPT-4o -> Claude 3.5
+    - **Automatic fallback**: If a model errors, the next in priority is tried automatically
+    - **60s timeout** per model call
+    - **3 image models**: DALL-E 3 -> Stable Diffusion XL -> Flux Schnell (120s timeout)
+    - **Model cost tracking**: Per-model pricing for cost monitoring
+    - **New methods**: `generateCompletion()`, `generateImage()`, `generateSeoSuggestions()`, `generateThumbnailConcepts()`
+- **Key Design**: All generation methods use `generateCompletion()` which handles the fallback chain. The `generateScript()`, `generateSeoSuggestions()`, and `generateThumbnailConcepts()` methods all benefit from automatic fallback.
+
+### Session 9: Team/Workspace Schema
+
+- **Mode**: ACT MODE
+- **Activity**: Added team/workspace support to the database schema
+- **New Prisma Models**:
+  - `Team` - slug, name, description, members, scripts, invites
+  - `TeamMember` - userId + role (owner/admin/member) per team
+  - `TeamInvite` - email invite with token, expiry, acceptance tracking
+  - `User.teamMembers` - relationship to teams
+  - `Script.team` - optional team association (TeamScripts relation)
+  - `Niche.team` - optional team association (TeamNiches relation)
+
+### Session 10: Documentation Update
+
+- **Mode**: ACT MODE
+- **Activity**: Updated all markdown documentation to reflect latest changes
+- **Files Updated**:
+  - `README.md` - Updated tech stack, project structure, API endpoints, features list, Post-MVP checklist
+  - `AGENTS.md` - Added Sessions 6-9 documenting all new work
+  - `PLANS.md` - Updated state management, schema count, Post-MVP checklist
+
+### Session 11: Admin Panel Relocation & Secure Admin Promotion
+
+- **Mode**: ACT MODE
+- **Activity**: Moved admin panel from dashboard sidebar to standalone `/admin` route, implemented secure admin promotion mechanism
+- **Problem**: Admin panel was accessible at `/dashboard/admin` with a link in the sidebar visible to all users (though filtered by role). There was no way to create an admin user after initial signup.
+- **Solution**:
+  - **Admin Panel Relocated**: Moved from `/dashboard/admin` to standalone `/admin` route with its own auth guard and top navigation bar with "Back to Dashboard" button
+  - **Admin Promotion**: Added `POST /auth/make-admin` endpoint that accepts `{ secretKey: string }` in the body. The backend compares the provided key against the `ADMIN_SECRET_KEY` environment variable. Only the app owner knows this secret key, so only they can promote users to admin.
+  - **Security**: Only authenticated users can hit the endpoint (JwtAuthGuard), and the secret key is stored in environment variables, never in code.
+  - **Dashboard Cleanup**: Removed admin link from `navItems` in `frontend/src/app/dashboard/layout.tsx` entirely, simplifying the sidebar.
+- **Files Created**:
+  - `frontend/src/app/admin/page.tsx` - Standalone admin panel at `/admin` route
+- **Files Modified**:
+  - `backend/src/auth/auth.service.ts` - Added `makeAdmin()` method with `ADMIN_SECRET_KEY` validation
+  - `backend/src/auth/auth.controller.ts` - Added `POST /auth/make-admin` endpoint
+  - `frontend/src/app/dashboard/layout.tsx` - Removed admin link from sidebar nav items
+  - `.env.example` - Added `ADMIN_SECRET_KEY` environment variable
+- **Files Deleted**:
+  - `frontend/src/app/dashboard/admin/page.tsx` - Old admin panel (moved to `/admin`)
+
 ## Project Rules Established
 
 1. Agents restricted to project folder only
 2. No git/github commands allowed
 3. All updates documented in markdown files (AGENTS.md, PLANS.md, README.md)
 4. Full SDLC progress documented
+5. Dependencies are managed via Docker — never run `npm install` or `npm add` directly on the host machine. Instead, use `docker compose build` or `docker compose up` to install dependencies inside containers.

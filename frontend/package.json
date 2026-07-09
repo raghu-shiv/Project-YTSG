@@ -2,6 +2,7 @@
   "name": "ysg-frontend",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -16,7 +17,8 @@
     "bcryptjs": "^2.4.3",
     "lucide-react": "^0.440.0",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^2.5.0"
+    "tailwind-merge": "^2.5.0",
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

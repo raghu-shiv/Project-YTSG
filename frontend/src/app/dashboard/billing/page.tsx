@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button, Card, Badge, LoadingSpinner } from "@/components/ui";
 import { apiClient } from "@/lib/api";
+import { useCreditsStore } from "@/stores";
 
 declare global {
   interface Window {
@@ -12,18 +13,19 @@ declare global {
 
 export default function BillingPage() {
   const [pricing, setPricing] = useState<any>(null);
-  const [balance, setBalance] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(true);
+
+  const balance = useCreditsStore((state) => state.balance);
+  const fetchBalance = useCreditsStore((state) => state.fetchBalance);
 
   useEffect(() => {
-    Promise.all([apiClient("/payments/pricing"), apiClient("/credits/balance")])
-      .then(([pricingData, balanceData]) => {
+    Promise.all([apiClient("/payments/pricing"), fetchBalance()])
+      .then(([pricingData]) => {
         setPricing(pricingData);
-        setBalance(balanceData.balance);
-        setLoading(false);
+        setPageLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, []);
+      .catch(() => setPageLoading(false));
+  }, [fetchBalance]);
 
   const handlePurchase = async (amount: number, credits: number) => {
     try {
@@ -48,8 +50,7 @@ export default function BillingPage() {
               razorpaySignature: response.razorpay_signature,
             },
           });
-          const balanceData = await apiClient("/credits/balance");
-          setBalance(balanceData.balance);
+          await fetchBalance();
           alert("Credits added successfully!");
         },
         modal: {
@@ -64,7 +65,7 @@ export default function BillingPage() {
     }
   };
 
-  if (loading) {
+  if (pageLoading) {
     return <LoadingSpinner size="lg" className="py-20" />;
   }
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { apiClient } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth-store";
+import { useUIStore } from "@/stores/ui-store";
 import clsx from "clsx";
 
 const navItems = [
@@ -98,9 +99,13 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const fetchProfile = useAuthStore((state) => state.fetchProfile);
+  const logout = useAuthStore((state) => state.logout);
+  const sidebarOpen = useUIStore((state) => state.sidebarOpen);
+  const setSidebarOpen = useUIStore((state) => state.setSidebarOpen);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -109,23 +114,23 @@ export default function DashboardLayout({
       return;
     }
 
-    apiClient("/users/profile")
-      .then((data) => {
-        setUser(data);
-        setLoading(false);
-      })
-      .catch(() => {
-        localStorage.removeItem("token");
-        router.push("/login");
-      });
-  }, [router]);
+    if (!isInitialized) {
+      fetchProfile();
+    }
+  }, [router, isInitialized, fetchProfile]);
+
+  useEffect(() => {
+    if (isInitialized && !isLoading && !user) {
+      router.push("/login");
+    }
+  }, [isInitialized, isLoading, user, router]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    logout();
     router.push("/login");
   };
 
-  if (loading) {
+  if (isLoading || !isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-3">
@@ -134,6 +139,10 @@ export default function DashboardLayout({
         </div>
       </div>
     );
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (
@@ -196,32 +205,33 @@ export default function DashboardLayout({
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1">
             {navItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/dashboard" && pathname.startsWith(item.href));
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={clsx(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200",
-                    isActive
-                      ? "bg-indigo-50 text-indigo-700 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100",
-                  )}
-                >
-                  <span
+                const isActive =
+                  pathname === item.href ||
+                  (item.href !== "/dashboard" &&
+                    pathname.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setSidebarOpen(false)}
                     className={clsx(
-                      isActive ? "text-indigo-600" : "text-gray-400",
+                      "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200",
+                      isActive
+                        ? "bg-indigo-50 text-indigo-700 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100",
                     )}
                   >
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </Link>
-              );
-            })}
+                    <span
+                      className={clsx(
+                        isActive ? "text-indigo-600" : "text-gray-400",
+                      )}
+                    >
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </Link>
+                );
+              })}
           </nav>
 
           {/* User section */}

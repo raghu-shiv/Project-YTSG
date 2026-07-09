@@ -1,37 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Card, Badge, LoadingSpinner } from "@/components/ui";
+import { useScriptsStore } from "@/stores";
 import { apiClient } from "@/lib/api";
 
 export default function ScriptDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [script, setScript] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"script" | "seo" | "thumbnail">(
     "script",
   );
 
+  const currentScript = useScriptsStore((state) => state.currentScript);
+  const isLoading = useScriptsStore((state) => state.isLoading);
+  const fetchScript = useScriptsStore((state) => state.fetchScript);
+  const deleteScript = useScriptsStore((state) => state.deleteScript);
+  const setCurrentScript = useScriptsStore((state) => state.setCurrentScript);
+  const clearError = useScriptsStore((state) => state.clearError);
+
   useEffect(() => {
-    const fetchScript = async () => {
-      try {
-        const data = await apiClient(`/scripts/${params.id}`);
-        setScript(data);
-      } catch (err) {
-        router.push("/dashboard/scripts");
-      } finally {
-        setLoading(false);
-      }
+    clearError();
+    fetchScript(params.id as string);
+    return () => {
+      setCurrentScript(null);
     };
-    fetchScript();
-  }, [params.id, router]);
+  }, [params.id, fetchScript, setCurrentScript, clearError]);
 
   const handleRegenerate = async () => {
     try {
-      await apiClient(`/scripts/${params.id}/regenerate`, { method: "PUT" });
-      setScript((prev: any) => ({ ...prev, status: "generating" }));
+      const result = await apiClient(`/scripts/${params.id}/regenerate`, {
+        method: "PUT",
+      });
+      setCurrentScript({ ...currentScript, ...result, status: "generating" });
     } catch (err: any) {
       alert(err.message);
     }
@@ -39,26 +41,22 @@ export default function ScriptDetailPage() {
 
   const handleDelete = async () => {
     if (!confirm("Delete this script?")) return;
-    try {
-      await apiClient(`/scripts/${params.id}`, { method: "DELETE" });
-      router.push("/dashboard/scripts");
-    } catch (err: any) {
-      alert(err.message);
-    }
+    await deleteScript(params.id as string);
+    router.push("/dashboard/scripts");
   };
 
   const handleCopy = () => {
-    if (script?.content) {
-      navigator.clipboard.writeText(script.content);
+    if (currentScript?.content) {
+      navigator.clipboard.writeText(currentScript.content);
       alert("Script copied to clipboard!");
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return <LoadingSpinner size="lg" className="py-20" />;
   }
 
-  if (!script) {
+  if (!currentScript) {
     return (
       <Card variant="default" padding="lg" className="text-center py-16">
         <div className="text-6xl mb-4">🔍</div>
@@ -83,11 +81,11 @@ export default function ScriptDetailPage() {
   ];
 
   const statusVariant =
-    script.status === "completed"
+    currentScript.status === "completed"
       ? "success"
-      : script.status === "generating"
+      : currentScript.status === "generating"
         ? "warning"
-        : script.status === "failed"
+        : currentScript.status === "failed"
           ? "danger"
           : "default";
 
@@ -98,13 +96,14 @@ export default function ScriptDetailPage() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-2xl font-bold text-gray-900">
-              {script.title || script.topic}
+              {currentScript.title || currentScript.topic}
             </h1>
-            <Badge variant={statusVariant}>{script.status}</Badge>
+            <Badge variant={statusVariant}>{currentScript.status}</Badge>
           </div>
           <p className="text-sm text-gray-500">
-            {script.videoType?.replace(/_/g, " ")} · {script.wordCount || 0}{" "}
-            words · {new Date(script.createdAt).toLocaleDateString()}
+            {currentScript.videoType?.replace(/_/g, " ")} ·{" "}
+            {currentScript.wordCount || 0} words ·{" "}
+            {new Date(currentScript.createdAt).toLocaleDateString()}
           </p>
         </div>
         <div className="flex gap-2">
@@ -112,7 +111,7 @@ export default function ScriptDetailPage() {
             variant="outline"
             size="sm"
             onClick={handleCopy}
-            disabled={!script.content}
+            disabled={!currentScript.content}
           >
             <svg
               className="w-4 h-4 mr-1"
@@ -133,7 +132,7 @@ export default function ScriptDetailPage() {
             variant="secondary"
             size="sm"
             onClick={handleRegenerate}
-            disabled={script.status === "generating"}
+            disabled={currentScript.status === "generating"}
           >
             <svg
               className="w-4 h-4 mr-1"
@@ -170,7 +169,7 @@ export default function ScriptDetailPage() {
       </div>
 
       {/* Status alerts */}
-      {script.status === "generating" && (
+      {currentScript.status === "generating" && (
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
           <div className="w-5 h-5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-amber-700">
@@ -179,7 +178,7 @@ export default function ScriptDetailPage() {
         </div>
       )}
 
-      {script.status === "failed" && (
+      {currentScript.status === "failed" && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
           <svg
             className="w-5 h-5 text-red-500 flex-shrink-0"
@@ -221,10 +220,10 @@ export default function ScriptDetailPage() {
       {/* Script Tab */}
       {activeTab === "script" && (
         <Card variant="default" padding="lg">
-          {script.content ? (
+          {currentScript.content ? (
             <div className="prose prose-sm max-w-none">
               <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-700">
-                {script.content}
+                {currentScript.content}
               </pre>
             </div>
           ) : (
@@ -239,7 +238,7 @@ export default function ScriptDetailPage() {
       {/* SEO Tab */}
       {activeTab === "seo" && (
         <div className="space-y-4">
-          {script.seoSuggestions ? (
+          {currentScript.seoSuggestions ? (
             <>
               <Card variant="default" padding="lg">
                 <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -259,7 +258,7 @@ export default function ScriptDetailPage() {
                   Keywords
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {script.seoSuggestions.keywords?.map(
+                  {currentScript.seoSuggestions.keywords?.map(
                     (kw: string, i: number) => (
                       <span
                         key={i}
@@ -290,7 +289,7 @@ export default function ScriptDetailPage() {
                   Hashtags
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {script.seoSuggestions.hashtags?.map(
+                  {currentScript.seoSuggestions.hashtags?.map(
                     (ht: string, i: number) => (
                       <span
                         key={i}
@@ -321,7 +320,7 @@ export default function ScriptDetailPage() {
                   Title Suggestions
                 </h3>
                 <ul className="space-y-2">
-                  {script.seoSuggestions.titleSuggestions?.map(
+                  {currentScript.seoSuggestions.titleSuggestions?.map(
                     (t: string, i: number) => (
                       <li
                         key={i}
@@ -351,8 +350,8 @@ export default function ScriptDetailPage() {
       {/* Thumbnail Tab */}
       {activeTab === "thumbnail" && (
         <div className="space-y-4">
-          {script.thumbnailConcepts?.length > 0 ? (
-            script.thumbnailConcepts.map((concept: any, i: number) => (
+          {currentScript.thumbnailConcepts?.length > 0 ? (
+            currentScript.thumbnailConcepts.map((concept: any, i: number) => (
               <Card key={i} variant="default" padding="lg">
                 <div className="flex items-start gap-4">
                   <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">

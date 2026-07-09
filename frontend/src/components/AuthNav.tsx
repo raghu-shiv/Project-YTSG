@@ -1,44 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { apiClient } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth-store";
 
 export function AuthNav() {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    name?: string;
-    email?: string;
-    creditBalance?: number;
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    apiClient("/users/profile")
-      .then((data) => {
-        setUser(data);
-        setLoading(false);
-      })
-      .catch(() => {
-        localStorage.removeItem("token");
-        setLoading(false);
-      });
-  }, []);
+  const user = useAuthStore((state) => state.user);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const logout = useAuthStore((state) => state.logout);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
+    logout();
     router.push("/");
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />

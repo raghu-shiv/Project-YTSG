@@ -75,6 +75,7 @@ model User {
     payments           Payment[]
     scripts            Script[]
     aiUsageLogs        AiUsageLog[]
+    teamMembers        TeamMember[]
 
     @@map("users")
 }
@@ -134,7 +135,9 @@ model Niche {
     keywords    String[]
     createdAt   DateTime @default(now()) @map("created_at")
 
-    scripts Script[]
+    scripts Script[] @relation("NicheScripts")
+    team    Team?    @relation("TeamNiches", fields: [teamId], references: [id])
+    teamId  String?
 
     @@map("niches")
 }
@@ -157,10 +160,12 @@ model Script {
     updatedAt            DateTime     @updatedAt @map("updated_at")
 
     user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-    niche             Niche?             @relation(fields: [nicheId], references: [id], onDelete: SetNull)
+    niche             Niche?             @relation("NicheScripts", fields: [nicheId], references: [id], onDelete: SetNull)
     versions          ScriptVersion[]
     seoSuggestions    SeoSuggestion?
     thumbnailConcepts ThumbnailConcept[]
+    team              Team?              @relation("TeamScripts", fields: [teamId], references: [id])
+    teamId            String?
 
     @@map("scripts")
 }
@@ -217,4 +222,56 @@ model AiUsageLog {
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@map("ai_usage_logs")
+}
+
+// Team / Workspace models
+enum TeamRole {
+    owner
+    admin
+    member
+}
+
+model Team {
+    id          String   @id @default(uuid())
+    name        String
+    slug        String   @unique
+    description String?
+    createdAt   DateTime @default(now()) @map("created_at")
+    updatedAt   DateTime @updatedAt @map("updated_at")
+
+    members     TeamMember[]
+    scripts     Script[]     @relation("TeamScripts")
+    niches      Niche[]      @relation("TeamNiches")
+    teamInvites TeamInvite[]
+
+    @@map("teams")
+}
+
+model TeamMember {
+    id        String   @id @default(uuid())
+    teamId    String   @map("team_id")
+    userId    String   @map("user_id")
+    role      TeamRole @default(member)
+    createdAt DateTime @default(now()) @map("created_at")
+
+    team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([teamId, userId])
+    @@map("team_members")
+}
+
+model TeamInvite {
+    id        String   @id @default(uuid())
+    teamId    String   @map("team_id")
+    email     String
+    role      TeamRole @default(member)
+    token     String   @unique
+    accepted  Boolean  @default(false)
+    createdAt DateTime @default(now()) @map("created_at")
+    expiresAt DateTime @map("expires_at")
+
+    team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+    @@map("team_invites")
 }

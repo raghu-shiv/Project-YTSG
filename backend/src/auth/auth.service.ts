@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  ForbiddenException,
   Logger,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
@@ -51,6 +52,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
+        creditBalance: user.creditBalance,
       },
       token,
     };
@@ -74,6 +76,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
+        creditBalance: user.creditBalance,
       },
       token,
     };
@@ -136,8 +139,42 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
+        creditBalance: user.creditBalance,
       },
       token,
+    };
+  }
+
+  /**
+   * Promote a user to admin role using a secret admin key.
+   * Only authenticated users can call this endpoint, and they must
+   * provide the correct ADMIN_SECRET_KEY environment variable value.
+   */
+  async makeAdmin(userId: string, secretKey: string) {
+    const adminSecretKey = process.env.ADMIN_SECRET_KEY;
+    if (!adminSecretKey) {
+      throw new ForbiddenException("Admin promotion is not configured");
+    }
+
+    if (secretKey !== adminSecretKey) {
+      throw new ForbiddenException("Invalid admin secret key");
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { role: "admin" },
+    });
+
+    this.logger.log(`User ${user.email} (${user.id}) promoted to admin`);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        creditBalance: user.creditBalance,
+      },
     };
   }
 

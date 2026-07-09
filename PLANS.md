@@ -11,18 +11,18 @@
 │  Next.js Frontend │ ───────────────────▶ │   NestJS API (REST)  │
 │  (Vercel)          │ ◀─────────────────  │   (Railway/Render)    │
 └─────────────────┘                        └──────────┬────────────┘
-                                                        │
-                     ┌──────────────────────────────────┼───────────────────────┐
-                     ▼                                  ▼                       ▼
-             ┌───────────────┐                 ┌────────────────┐      ┌────────────────┐
-             │ PostgreSQL    │                 │ Redis (Upstash) │      │ OpenRouter API │
-             │ (Neon/Supabase)│                │ cache + queue   │      │ (LLM calls)     │
-             └───────────────┘                 └────────────────┘      └────────────────┘
-                     │
-                     ▼
-             ┌───────────────┐
-             │ Razorpay       │  (Webhooks → credit ledger update)
-             └───────────────┘
+                                                          │
+                       ┌──────────────────────────────────┼───────────────────────┐
+                       ▼                                  ▼                       ▼
+               ┌───────────────┐                 ┌────────────────┐      ┌────────────────┐
+               │ PostgreSQL    │                 │ Redis (Upstash) │      │ OpenRouter API │
+               │ (Neon/Supabase)│                │ cache + queue   │      │ (LLM calls)     │
+               └───────────────┘                 └────────────────┘      └────────────────┘
+                       │
+                       ▼
+               ┌───────────────┐
+               │ Razorpay       │  (Webhooks → credit ledger update)
+               └───────────────┘
 ```
 
 ### Key Design Decisions
@@ -32,9 +32,10 @@
 | **Monorepo**      | Simple folder structure (backend/ + frontend/) | Keeps things simple for MVP; no monorepo tooling overhead   |
 | **API Pattern**   | RESTful                                        | Simple, well-understood, sufficient for MVP                 |
 | **Auth Flow**     | JWT (access token)                             | Stateless, works well with mobile/API clients               |
-| **AI Generation** | Async fire-and-forget with polling             | Avoids HTTP timeouts; future: WebSocket/SSE streaming       |
+| **AI Generation** | BullMQ job queue with SSE streaming            | Reliable background processing with real-time updates       |
 | **Credit System** | Optimistic deduction + refund on failure       | Prevents double-spending while handling failures gracefully |
 | **Payment Flow**  | Razorpay Orders API + client-side checkout     | Standard Indian payment flow; webhook verification          |
+| **State Mgmt**    | Zustand (4 stores)                             | Lightweight, no boilerplate, works with Next.js SSR         |
 
 ## 2. Database Schema Design
 
@@ -46,24 +47,32 @@ User (1) ──── (N) CreditTransaction
 User (1) ──── (N) Payment
 User (1) ──── (N) Subscription
 User (1) ──── (N) AiUsageLog
+User (1) ──── (N) TeamMember
 Script (1) ──── (N) ScriptVersion
 Script (1) ──── (1) SeoSuggestion
 Script (1) ──── (N) ThumbnailConcept
+Script (N) ──── (1) Team (optional)
 Niche (1) ──── (N) Script
+Niche (N) ──── (1) Team (optional)
+Team (1) ──── (N) TeamMember
+Team (1) ──── (N) TeamInvite
 ```
 
-### Models (10 total)
+### Models (13 total)
 
 1. **User** - Core user account with credit balance
 2. **CreditTransaction** - Immutable ledger of all credit movements
 3. **Subscription** - Monthly bundle subscriptions
 4. **Payment** - Razorpay payment records
-5. **Niche** - Predefined content categories
-6. **Script** - Generated scripts with status tracking
+5. **Niche** - Predefined content categories (optionally team-scoped)
+6. **Script** - Generated scripts with status tracking (optionally team-scoped)
 7. **ScriptVersion** - Version history on regeneration
 8. **SeoSuggestion** - SEO metadata per script
 9. **ThumbnailConcept** - Thumbnail ideas per script
 10. **AiUsageLog** - Token/cost tracking for observability
+11. **Team** - Workspace/team with slug, name, description
+12. **TeamMember** - User membership with role (owner/admin/member)
+13. **TeamInvite** - Email invite with token, expiry, acceptance
 
 ### Key Schema Decisions
 
@@ -72,6 +81,8 @@ Niche (1) ──── (N) Script
 - **Script status enum** (draft/generating/completed/failed) enables async generation flow
 - **AiUsageLog** enables cost monitoring and future billing optimization
 - **Snake_case column mapping** via `@map()` for PostgreSQL conventions
+- **Team/Workspace** uses a separate Team model with many-to-many via TeamMember
+- **Team scoping** on Script and Niche via optional foreign keys
 
 ## 3. API Design
 
@@ -82,6 +93,16 @@ Register/Login → JWT issued (7d expiry) → Stored in localStorage
 → Sent as Bearer token in Authorization header
 → Validated by JwtAuthGuard on protected routes
 → Public routes marked with @Public() decorator
+```
+
+### Admin Promotion Flow
+
+```
+Authenticated user → POST /auth/make-admin { secretKey: "..." }
+→ Backend compares secretKey against ADMIN_SECRET_KEY env var
+→ If match, user's role is promoted to "admin"
+→ Admin can now access /admin route (standalone page, not in dashboard sidebar)
+→ Non-admin users trying to access /admin are redirected to /dashboard
 ```
 
 ### Credit Flow
@@ -101,10 +122,22 @@ Monthly subscription grant    +N (per period)
 1. POST /api/scripts { topic, videoType }
 2. Check credit balance → deduct 1 credit (pending)
 3. Create Script record (status: "generating")
-4. Fire async AI generation (non-blocking)
-5. Frontend polls GET /api/scripts/:id
-6. On completion: update content, status → "completed"
-7. On failure: refund credit, status → "failed"
+4. Enqueue BullMQ job for async AI generation
+5. Frontend subscribes to SSE /api/scripts/:id/stream
+6. BullMQ worker processes: calls OpenRouter, streams tokens via SSE
+7. On completion: update content, status → "completed"
+8. On failure: refund credit, status → "failed"
+```
+
+### AI Model Fallback Flow
+
+```
+1. generateCompletion() called with preferred model (default: gpt-4o-mini)
+2. Try preferred model → if success, return result
+3. If error, log warning and try next model in priority chain:
+   GPT-4o-mini → Gemini Flash → DeepSeek → Llama 3.1 → GPT-4o → Claude 3.5
+4. If all models fail, throw error with last error message
+5. Same pattern for image generation: DALL-E 3 → Stable Diffusion XL → Flux Schnell
 ```
 
 ## 4. Frontend Architecture
@@ -116,22 +149,36 @@ RootLayout
 ├── Landing Page (/)
 ├── Login Page (/login)
 ├── Register Page (/register)
+├── Admin Panel (/admin) — Standalone page, not in dashboard sidebar
+│   └── Only accessible to admin users; non-admin redirected to /dashboard
 └── DashboardLayout (authenticated)
-    ├── Dashboard (/dashboard) - Script generator wizard
-    ├── Scripts (/dashboard/scripts) - Script library
+    ├── Dashboard (/dashboard) — Script generator wizard
+    ├── Scripts (/dashboard/scripts) — Script library
     │   └── ScriptDetail (/dashboard/scripts/[id])
-    │       ├── Script Tab
+    │       ├── Script Tab (inline editor with auto-save)
     │       ├── SEO Tab
     │       └── Thumbnail Tab
-    ├── Billing (/dashboard/billing) - Credit purchase
-    └── Settings (/dashboard/settings) - Profile
+    ├── Billing (/dashboard/billing) — Credit purchase
+    └── Settings (/dashboard/settings) — Profile
+
+### Shared Components
+├── UI (Button, Input, Card, Badge, LoadingSpinner)
+├── AuthNav — Auth-aware nav bar
+└── InlineEditor — Rich text editor with auto-save
 ```
 
-### State Management
+### State Management (Zustand)
 
-- **Auth state**: JWT token in localStorage, validated on dashboard mount
-- **API calls**: Direct fetch via `apiClient()` helper with automatic token injection
-- **No global state library** for MVP — component-level state is sufficient
+| Store            | Key State                                      | Persistence |
+| ---------------- | ---------------------------------------------- | ----------- |
+| **auth-store**   | user, token, login, logout, fetchProfile       | localStorage |
+| **ui-store**     | sidebarOpen, toggleSidebar                     | none        |
+| **scripts-store**| scripts, currentScript, isGenerating, isLoading| none        |
+| **credits-store**| balance, transactions, fetchBalance, purchase  | none        |
+
+- **Auth state**: Persisted to localStorage via Zustand `persist` middleware
+- **Credits sync**: `credits-store.fetchBalance()` calls `auth-store.updateCredits()` to keep sidebar balance in sync
+- **Scripts**: All pages consume from `scripts-store` instead of local state + direct API calls
 
 ## 5. Security Architecture
 
@@ -141,10 +188,11 @@ RootLayout
 | **HTTP Headers**         | Helmet.js middleware                                    |
 | **CORS**                 | Restricted to FRONTEND_URL                              |
 | **Auth**                 | JWT with 7d expiry, bcrypt password hashing (12 rounds) |
-| **Rate Limiting**        | @nestjs/throttler (10 requests/60s per IP)              |
+| **Rate Limiting**        | Per user tier (free: 10/min, pro: 60/min)               |
 | **Input Validation**     | class-validator whitelist + forbidNonWhitelisted        |
 | **Payment Verification** | Razorpay HMAC-SHA256 signature validation               |
 | **Secrets**              | Environment variables only, never in code               |
+| **Admin Promotion**      | ADMIN_SECRET_KEY env var — only known to app owner      |
 
 ## 6. Cost Optimization Strategy
 
@@ -170,16 +218,21 @@ RootLayout
 9. ✅ Billing/dashboard UI
 10. ✅ Documentation (README, AGENTS, PLANS)
 
-## 8. Post-MVP Roadmap
+## 8. Post-MVP Implementation
 
-- [ ] BullMQ queue for background AI generation (replace fire-and-forget)
-- [ ] WebSocket/SSE for real-time script streaming to frontend
-- [ ] Inline script editing with auto-save
-- [ ] Download as .txt/.docx
-- [ ] Admin panel (user management, credit adjustments, usage analytics)
-- [ ] Email notifications (welcome, credit low, generation complete)
-- [ ] Multiple AI model support with automatic fallback
-- [ ] Image generation for thumbnails (DALL-E / Stable Diffusion via OpenRouter)
-- [ ] Subscription auto-renewal via Razorpay webhooks
-- [ ] Team/workspace accounts
-- [ ] API rate limiting per user tier
+### Progress
+
+- [x] BullMQ queue for background AI generation
+- [x] SSE streaming for real-time script generation
+- [x] Inline script editing with auto-save (debounced)
+- [x] Download as .txt/.docx
+- [x] Admin panel (user management, credit adjustments)
+- [x] Email notifications (welcome, credit low)
+- [x] Subscription auto-renewal via Razorpay webhooks
+- [x] API rate limiting per user tier
+- [x] Zustand global state management (4 stores)
+- [x] Multi-model AI support with automatic fallback (6 models)
+- [x] Thumbnail image generation (DALL-E 3 / Stable Diffusion / Flux)
+- [x] Team/workspace accounts (Team, TeamMember, TeamInvite models)
+- [x] Admin panel relocated to standalone `/admin` route (not in dashboard sidebar)
+- [x] Admin promotion via `POST /auth/make-admin` with `ADMIN_SECRET_KEY` env var

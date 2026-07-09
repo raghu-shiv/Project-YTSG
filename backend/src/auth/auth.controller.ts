@@ -1,12 +1,12 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from "@nestjs/common";
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards } from "@nestjs/common";
 import { AuthService } from "./auth.service";
-import { Public } from "../common/decorators/public.decorator";
+import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 @Controller("auth")
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Public()
   @Post("register")
   async register(
     @Body() body: { email: string; password: string; name?: string },
@@ -14,14 +14,12 @@ export class AuthController {
     return this.authService.register(body.email, body.password, body.name);
   }
 
-  @Public()
   @Post("login")
   @HttpCode(HttpStatus.OK)
   async login(@Body() body: { email: string; password: string }) {
     return this.authService.login(body.email, body.password);
   }
 
-  @Public()
   @Post("google")
   @HttpCode(HttpStatus.OK)
   async googleLogin(
@@ -34,5 +32,15 @@ export class AuthController {
     },
   ) {
     return this.authService.googleLogin(body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post("make-admin")
+  @HttpCode(HttpStatus.OK)
+  async makeAdmin(
+    @CurrentUser() user: { id: string; email: string; role: string },
+    @Body() body: { secretKey: string },
+  ) {
+    return this.authService.makeAdmin(user.id, body.secretKey);
   }
 }

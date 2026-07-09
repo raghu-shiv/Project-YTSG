@@ -15,11 +15,34 @@ interface AICompletionResult {
   costUsd: number;
 }
 
+interface ImageGenerationResult {
+  url: string;
+  model: string;
+  costUsd: number;
+}
+
 @Injectable()
 export class AiProviderService {
   private readonly logger = new Logger(AiProviderService.name);
   private readonly baseUrl = "https://openrouter.ai/api/v1";
   private readonly apiKey: string;
+
+  // Ordered list of models for automatic fallback
+  private readonly modelPriority: string[] = [
+    "openai/gpt-4o-mini", // Fast, cheap, reliable
+    "google/gemini-1.5-flash", // Very cheap fallback
+    "deepseek/deepseek-chat", // Cheap fallback
+    "meta-llama/llama-3.1-8b-instruct", // Free/ultra-cheap fallback
+    "openai/gpt-4o", // Premium fallback
+    "anthropic/claude-3.5-sonnet", // Premium fallback
+  ];
+
+  // Image generation models
+  private readonly imageModels: string[] = [
+    "openai/dall-e-3",
+    "stabilityai/stable-diffusion-xl",
+    "black-forest-labs/flux-schnell",
+  ];
 
   // Model pricing (per 1K tokens in USD) - approximate costs
   private readonly modelCosts: Record<
@@ -46,61 +69,158 @@ export class AiProviderService {
     systemPrompt: string,
     options: AICompletionOptions = {},
   ): Promise<AICompletionResult> {
-    const model = options.model || "openai/gpt-4o-mini";
+    const preferredModel = options.model || "openai/gpt-4o-mini";
     const temperature = options.temperature ?? 0.7;
     const maxTokens = options.maxTokens || 4096;
 
-    try {
-      const response = await axios.post(
-        `${this.baseUrl}/chat/completions`,
-        {
+    // Build model list: preferred first, then fallbacks
+    const modelsToTry = [
+      preferredModel,
+      ...this.modelPriority.filter((m) => m !== preferredModel),
+    ];
+
+    let lastError: Error | null = null;
+
+    for (const model of modelsToTry) {
+      try {
+        const result = await this.callOpenRouter(
           model,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: prompt },
-          ],
+          prompt,
+          systemPrompt,
           temperature,
-          max_tokens: maxTokens,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": process.env.FRONTEND_URL || "http://localhost:3000",
-            "X-Title": "YouTube Script Generator",
-          },
-        },
-      );
-
-      const data = response.data;
-      const content = data.choices[0]?.message?.content || "";
-      const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0 };
-      const promptTokens = usage.prompt_tokens || 0;
-      const completionTokens = usage.completion_tokens || 0;
-
-      // Calculate cost
-      const costs = this.modelCosts[model] || {
-        input: 0.00015,
-        output: 0.0006,
-      };
-      const costUsd =
-        (promptTokens / 1000) * costs.input +
-        (completionTokens / 1000) * costs.output;
-
-      return {
-        content,
-        model,
-        promptTokens,
-        completionTokens,
-        costUsd: parseFloat(costUsd.toFixed(6)),
-      };
-    } catch (error: any) {
-      this.logger.error(
-        `OpenRouter API error: ${error.message}`,
-        error.response?.data,
-      );
-      throw new Error(`AI generation failed: ${error.message}`);
+          maxTokens,
+        );
+        return result;
+      } catch (error: any) {
+        lastError = error;
+        this.logger.warn(
+          `Model ${model} failed: ${error.message}. Trying next model...`,
+        );
+        // Continue to next model
+      }
     }
+
+    this.logger.error(
+      `All AI models failed. Last error: ${lastError?.message}`,
+    );
+    throw new Error(
+      `AI generation failed after trying all models: ${lastError?.message}`,
+    );
+  }
+
+  private async callOpenRouter(
+    model: string,
+    prompt: string,
+    systemPrompt: string,
+    temperature: number,
+    maxTokens: number,
+  ): Promise<AICompletionResult> {
+    const response = await axios.post(
+      `${this.baseUrl}/chat/completions`,
+      {
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt },
+        ],
+        temperature,
+        max_tokens: maxTokens,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.FRONTEND_URL || "http://localhost:3000",
+          "X-Title": "YouTube Script Generator",
+        },
+        timeout: 60000, // 60 second timeout
+      },
+    );
+
+    const data = response.data;
+    const content = data.choices[0]?.message?.content || "";
+    const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0 };
+    const promptTokens = usage.prompt_tokens || 0;
+    const completionTokens = usage.completion_tokens || 0;
+
+    // Calculate cost
+    const costs = this.modelCosts[model] || {
+      input: 0.00015,
+      output: 0.0006,
+    };
+    const costUsd =
+      (promptTokens / 1000) * costs.input +
+      (completionTokens / 1000) * costs.output;
+
+    return {
+      content,
+      model,
+      promptTokens,
+      completionTokens,
+      costUsd: parseFloat(costUsd.toFixed(6)),
+    };
+  }
+
+  async generateImage(
+    prompt: string,
+    options: { model?: string; size?: string } = {},
+  ): Promise<ImageGenerationResult> {
+    const preferredModel = options.model || "openai/dall-e-3";
+    const size = options.size || "1024x1024";
+
+    const modelsToTry = [
+      preferredModel,
+      ...this.imageModels.filter((m) => m !== preferredModel),
+    ];
+
+    let lastError: Error | null = null;
+
+    for (const model of modelsToTry) {
+      try {
+        const result = await this.callImageModel(model, prompt, size);
+        return result;
+      } catch (error: any) {
+        lastError = error;
+        this.logger.warn(
+          `Image model ${model} failed: ${error.message}. Trying next...`,
+        );
+      }
+    }
+
+    throw new Error(`Image generation failed: ${lastError?.message}`);
+  }
+
+  private async callImageModel(
+    model: string,
+    prompt: string,
+    size: string,
+  ): Promise<ImageGenerationResult> {
+    const response = await axios.post(
+      `${this.baseUrl}/image/generations`,
+      {
+        model,
+        prompt,
+        size,
+        n: 1,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.FRONTEND_URL || "http://localhost:3000",
+          "X-Title": "YouTube Script Generator",
+        },
+        timeout: 120000, // 2 minute timeout for image generation
+      },
+    );
+
+    const data = response.data;
+    const url = data.data?.[0]?.url || "";
+
+    // Estimate cost (image models are typically $0.02-$0.08 per image)
+    const costUsd = model.includes("dall-e") ? 0.04 : 0.02;
+
+    return { url, model, costUsd };
   }
 
   async generateScript(

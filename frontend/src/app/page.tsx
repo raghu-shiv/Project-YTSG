@@ -4,16 +4,18 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AuthNav } from "@/components/AuthNav";
+import { useAuthStore } from "@/stores/auth-store";
 
 export default function Home() {
   const router = useRouter();
+  const user = useAuthStore((state) => state.user);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
+    if (isInitialized && user) {
       router.push("/dashboard");
     }
-  }, [router]);
+  }, [isInitialized, user, router]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -381,12 +383,7 @@ export default function Home() {
                       viewBox="0 0 24 24"
                       stroke="currentColor"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     ₹3.98 per script
                   </li>

@@ -3,48 +3,56 @@
 import { useState, useEffect } from "react";
 import { Button, Input, Card } from "@/components/ui";
 import { apiClient } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth-store";
 
 export default function SettingsPage() {
+  const user = useAuthStore((state) => state.user);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const fetchProfile = useAuthStore((state) => state.fetchProfile);
+  const setUser = useAuthStore((state) => state.setUser);
+
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error">(
     "success",
   );
 
   useEffect(() => {
-    apiClient("/users/profile")
-      .then((data) => {
-        setName(data.name || "");
-        setEmail(data.email || "");
-        setFetching(false);
-      })
-      .catch(() => setFetching(false));
-  }, []);
+    if (!isInitialized) {
+      fetchProfile();
+    }
+  }, [isInitialized, fetchProfile]);
+
+  useEffect(() => {
+    if (user?.name) {
+      setName(user.name);
+    }
+  }, [user?.name]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
     setMessage("");
 
     try {
-      await apiClient("/users/profile", {
+      const updated = await apiClient("/users/profile", {
         method: "PUT",
         body: { name },
       });
+      setUser(updated);
       setMessageType("success");
       setMessage("Profile updated successfully");
     } catch (err: any) {
       setMessageType("error");
       setMessage(err.message || "Update failed");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  if (fetching) {
+  if (!isInitialized || isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center gap-3">
@@ -67,7 +75,7 @@ export default function SettingsPage() {
       <Card variant="elevated" padding="lg">
         <div className="flex items-center gap-4 mb-6">
           <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-indigo-200">
-            {(name || email || "?").charAt(0).toUpperCase()}
+            {(name || user?.email || "?").charAt(0).toUpperCase()}
           </div>
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Profile</h2>
@@ -145,7 +153,7 @@ export default function SettingsPage() {
           <Input
             label="Email"
             type="email"
-            value={email}
+            value={user?.email || ""}
             disabled
             icon={
               <svg
@@ -165,7 +173,7 @@ export default function SettingsPage() {
           />
 
           <div className="flex items-center gap-3 pt-2">
-            <Button type="submit" loading={loading} variant="primary">
+            <Button type="submit" loading={saving} variant="primary">
               <svg
                 className="w-4 h-4 mr-1.5"
                 fill="none"
@@ -181,7 +189,7 @@ export default function SettingsPage() {
               </svg>
               Save Changes
             </Button>
-            {!loading && messageType === "success" && message && (
+            {!saving && messageType === "success" && message && (
               <span className="text-sm text-emerald-600 font-medium">
                 ✓ Saved
               </span>
@@ -198,11 +206,15 @@ export default function SettingsPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between py-2 border-b border-gray-100">
             <span className="text-sm text-gray-500">Account Type</span>
-            <span className="text-sm font-medium text-gray-900">Free</span>
+            <span className="text-sm font-medium text-gray-900">
+              {user?.role === "admin" ? "Admin" : "Free"}
+            </span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-gray-100">
-            <span className="text-sm text-gray-500">Member Since</span>
-            <span className="text-sm font-medium text-gray-900">July 2026</span>
+            <span className="text-sm text-gray-500">Credits</span>
+            <span className="text-sm font-medium text-gray-900">
+              {user?.creditBalance ?? 0}
+            </span>
           </div>
           <div className="flex items-center justify-between py-2">
             <span className="text-sm text-gray-500">Auth Method</span>
