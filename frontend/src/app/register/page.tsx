@@ -4,12 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Input, Card } from "@/components/ui";
-import { apiClient } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const login = useAuthStore((state) => state.login);
+  const register = useAuthStore((state) => state.register);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,11 +21,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const data = await apiClient("/auth/register", {
-        method: "POST",
-        body: { email, password, name },
-      });
-      login(data.token, data.user);
+      await register(email, password, name);
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message || "Registration failed");

@@ -108,7 +108,7 @@ export default function DashboardLayout({
   const setSidebarOpen = useUIStore((state) => state.setSidebarOpen);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("ysg-token");
     if (!token) {
       router.push("/login");
       return;

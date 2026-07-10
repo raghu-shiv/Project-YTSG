@@ -13,7 +13,7 @@ export async function apiClient(
   const { method = "GET", body, headers = {} } = options;
 
   const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    typeof window !== "undefined" ? localStorage.getItem("ysg-token") : null;
 
   const config: RequestInit = {
     method,

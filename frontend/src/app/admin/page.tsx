@@ -22,7 +22,7 @@ export default function AdminPage() {
   const [showCreditModal, setShowCreditModal] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("ysg-token");
     if (!token) {
       router.push("/login");
       return;

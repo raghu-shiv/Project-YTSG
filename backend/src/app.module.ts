@@ -16,6 +16,7 @@ import { QueueModule } from "./queue/queue.module";
 import { SseModule } from "./sse/sse.module";
 import { AdminModule } from "./admin/admin.module";
 import { EmailModule } from "./email/email.module";
+import { HealthModule } from "./health/health.module";
 import { ThrottleTierGuard } from "./common/guards/throttle-tier.guard";
 
 @Module({
@@ -47,6 +48,7 @@ import { ThrottleTierGuard } from "./common/guards/throttle-tier.guard";
     SseModule,
     AdminModule,
     EmailModule,
+    HealthModule,
   ],
   providers: [
     {

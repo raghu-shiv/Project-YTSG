@@ -15,7 +15,8 @@ type AuthState = {
   token: string | null;
   isLoading: boolean;
   isInitialized: boolean;
-  login: (token: string, user: User) => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => void;
   fetchProfile: () => Promise<void>;
   setUser: (user: User) => void;
@@ -31,13 +32,39 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       isInitialized: false,
 
-      login: (token: string, user: User) => {
-        localStorage.setItem("token", token);
-        set({ token, user, isLoading: false, isInitialized: true });
+      login: async (email: string, password: string) => {
+        set({ isLoading: true });
+        try {
+          const data = await apiClient("/auth/login", {
+            method: "POST",
+            body: { email, password },
+          });
+          // Save token to both localStorage (for apiClient) and persisted store
+          localStorage.setItem("ysg-token", data.token);
+          set({ token: data.token, user: data.user, isLoading: false, isInitialized: true });
+        } catch (err: any) {
+          set({ isLoading: false });
+          throw new Error(err.message || "Login failed");
+        }
+      },
+
+      register: async (email: string, password: string, name?: string) => {
+        set({ isLoading: true });
+        try {
+          const data = await apiClient("/auth/register", {
+            method: "POST",
+            body: { email, password, name },
+          });
+          localStorage.setItem("ysg-token", data.token);
+          set({ token: data.token, user: data.user, isLoading: false, isInitialized: true });
+        } catch (err: any) {
+          set({ isLoading: false });
+          throw new Error(err.message || "Registration failed");
+        }
       },
 
       logout: () => {
-        localStorage.removeItem("token");
+        localStorage.removeItem("ysg-token");
         set({ token: null, user: null, isLoading: false });
       },
 
@@ -50,7 +77,7 @@ export const useAuthStore = create<AuthState>()(
           const user = await apiClient("/users/profile");
           set({ user, isLoading: false, isInitialized: true });
         } catch {
-          localStorage.removeItem("token");
+          localStorage.removeItem("ysg-token");
           set({
             token: null,
             user: null,
@@ -72,16 +99,25 @@ export const useAuthStore = create<AuthState>()(
       },
 
       initialize: async () => {
-        const { token } = get();
+        // Read token directly from localStorage (persist may not be hydrated yet)
+        const token = localStorage.getItem("ysg-token");
         if (!token) {
           set({ isInitialized: true });
           return;
         }
-        await get().fetchProfile();
+        // Ensure token is in the store
+        set({ token });
+        try {
+          const user = await apiClient("/users/profile");
+          set({ user, isLoading: false, isInitialized: true });
+        } catch {
+          localStorage.removeItem("ysg-token");
+          set({ token: null, user: null, isLoading: false, isInitialized: true });
+        }
       },
     }),
     {
-      name: "auth-storage",
+      name: "ysg-auth",
       partialize: (state) => ({
         token: state.token,
         user: state.user,

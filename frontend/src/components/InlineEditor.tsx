@@ -46,7 +46,7 @@ export function InlineEditor({ initialContent, scriptId }: InlineEditorProps) {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/scripts/${scriptId}/download?format=${format}`,
         {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem("ysg-token")}` },
         },
       );
       const blob = await response.blob();

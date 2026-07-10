@@ -63,7 +63,7 @@ YouTubeScriptGenerator/
             └── dashboard/   # Dashboard (generator, scripts, billing, settings, admin)
 ```
 
-## Getting Started
+## Getting Started (Local Development)
 
 ### Prerequisites
 
@@ -86,6 +86,190 @@ YouTubeScriptGenerator/
 4. Access the application:
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:4000/api
+
+## Production Deployment
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────┐
+│  Vercel (Frontend)                               │
+│  https://youtube-script-generator.vercel.app     │
+│                                                   │
+│  - Next.js 16 App Router                         │
+│  - Server-side rendering, static generation      │
+│  - Automatic SSL, CDN, edge caching              │
+└──────────────────────┬──────────────────────────┘
+                       │ HTTPS
+                       ▼
+┌──────────────────────────────────────────────────┐
+│  Render (Backend API + Database + Redis)          │
+│  https://ysg-backend.onrender.com                 │
+│                                                    │
+│  - NestJS API (Docker container)                  │
+│  - PostgreSQL managed database                    │
+│  - Redis managed cache + BullMQ queue             │
+│  - Automatic SSL, health checks, auto-deploy     │
+└──────────────────────────────────────────────────┘
+```
+
+### Prerequisites
+
+- GitHub account (connected to Vercel & Render)
+- OpenRouter API key
+- Razorpay account (for payments)
+- (Optional) Google OAuth credentials
+
+### Step 1: Prepare the Repository
+
+1. Push your code to a GitHub repository
+2. Ensure the following files exist in your repo root:
+   - `vercel.json` — Vercel deployment config
+   - `render.yaml` — Render Blueprint config (infrastructure-as-code)
+   - `backend/Dockerfile` — Production Docker image for backend
+   - `backend/startup.sh` — Production startup script with auto-migration
+   - `backend/src/health/` — Health check endpoint at `/api/health`
+
+### Step 2: Deploy Backend to Render
+
+#### Option A: Blueprint (Recommended — uses render.yaml)
+
+1. Log in to [Render Dashboard](https://dashboard.render.com)
+2. Click **New → Blueprint**
+3. Connect your GitHub repo
+4. Render will automatically detect `render.yaml` and create:
+   - **Web Service**: `ysg-backend` (Docker image)
+   - **PostgreSQL**: `ysg-postgres` (free tier)
+   - **Redis**: `ysg-redis` (free tier)
+5. After creation, add the following **manual environment variables** in the Web Service dashboard:
+   - `OPENROUTER_API_KEY` — Your OpenRouter key
+   - `RAZORPAY_KEY_ID` — Your Razorpay key ID
+   - `RAZORPAY_KEY_SECRET` — Your Razorpay secret
+   - `RAZORPAY_WEBHOOK_SECRET` — Your Razorpay webhook secret
+   - `ADMIN_SECRET_KEY` — A strong random secret for admin promotion
+   - `RESEND_API_KEY` — (Optional) For email notifications
+
+#### Option B: Manual Setup
+
+1. **Create PostgreSQL Database**:
+   - Go to **New → PostgreSQL**
+   - Name: `ysg-postgres`
+   - Database: `ysg_db`, User: `ysg_user`
+   - Plan: Free
+   - Note the **Internal Connection String**
+
+2. **Create Redis Instance**:
+   - Go to **New → Redis**
+   - Name: `ysg-redis`
+   - Plan: Free
+   - Note the **Connection Details** (host, port, password)
+
+3. **Create Web Service**:
+   - Go to **New → Web Service**
+   - Connect your GitHub repo
+   - **Name**: `ysg-backend`
+   - **Runtime**: Docker
+   - **Dockerfile Path**: `./backend/Dockerfile`
+   - **Docker Context**: `./backend`
+   - **Plan**: Free
+   - **Health Check Path**: `/api/health`
+   - **Auto-Deploy**: Yes
+
+   - Add environment variables:
+
+     | Variable | Value |
+     |----------|-------|
+     | `NODE_ENV` | `production` |
+     | `PORT` | `4000` |
+     | `DATABASE_URL` | (from PostgreSQL) |
+     | `REDIS_HOST` | (from Redis) |
+     | `REDIS_PORT` | (from Redis) |
+     | `REDIS_PASSWORD` | (from Redis) |
+     | `JWT_SECRET` | `openssl rand -base64 32` (generate) |
+     | `OPENROUTER_API_KEY` | Your OpenRouter key |
+     | `FRONTEND_URL` | `https://youtube-script-generator.vercel.app` |
+     | `RAZORPAY_KEY_ID` | Your Razorpay key |
+     | `RAZORPAY_KEY_SECRET` | Your Razorpay secret |
+     | `RAZORPAY_WEBHOOK_SECRET` | Your webhook secret |
+     | `ADMIN_SECRET_KEY` | A strong random secret |
+     | `RESEND_API_KEY` | (Optional) Resend API key |
+
+4. Once deployed, note your backend URL: `https://ysg-backend.onrender.com`
+
+### Step 3: Deploy Frontend to Vercel
+
+1. Go to [Vercel Dashboard](https://vercel.com)
+2. Click **Add New → Project**
+3. Import your GitHub repository
+4. Configure the project:
+
+   | Setting | Value |
+   |---------|-------|
+   | **Framework Preset** | Next.js |
+   | **Root Directory** | `frontend/` |
+   | **Build Command** | `npm run build` |
+   | **Output Directory** | `.next` |
+
+5. **Environment Variables** (required):
+
+   | Variable | Value |
+   |----------|-------|
+   | `NEXT_PUBLIC_API_URL` | `https://ysg-backend.onrender.com` |
+   | `NEXT_PUBLIC_SITE_URL` | `https://youtube-script-generator.vercel.app` |
+   | `BETTER_AUTH_SECRET` | A strong random secret |
+   | `BETTER_AUTH_URL` | `https://youtube-script-generator.vercel.app` |
+
+6. Click **Deploy**
+7. After deployment, Vercel provides your frontend URL (e.g., `https://youtube-script-generator.vercel.app`)
+
+### Step 4: Post-Deployment Configuration
+
+1. **Update Razorpay Webhook**:
+   - Go to Razorpay Dashboard → Settings → Webhooks
+   - Add webhook URL: `https://ysg-backend.onrender.com/api/payments/webhook`
+   - Select events: `payment.captured`, `subscription.charged`
+
+2. **Create Admin User**:
+   - Register a new account on the frontend
+   - Send a POST request to promote to admin:
+     ```bash
+     curl -X POST https://ysg-backend.onrender.com/api/auth/make-admin \
+       -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d '{"secretKey": "YOUR_ADMIN_SECRET_KEY"}'
+     ```
+   - Now access `https://youtube-script-generator.vercel.app/admin`
+
+3. **Verify Health Check**:
+   ```bash
+   curl https://ysg-backend.onrender.com/api/health
+   ```
+   Expected response: `{ "status": "ok", "timestamp": "...", ... }`
+
+### Step 5: Configure Custom Domain (Optional)
+
+1. **Vercel**: Go to Project → Settings → Domains → Add your domain
+2. **Render**: Go to Web Service → Settings → Custom Domain
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Backend shows `503` on deploy | Wait 2-3 minutes for first build + DB migration |
+| CORS errors on frontend | Ensure `FRONTEND_URL` in backend env matches exactly |
+| Prisma migration fails | Check `DATABASE_URL` — ensure SSL is enabled if required |
+| Redis connection refused | Verify `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` match Render Redis dashboard |
+| AI generation fails | Verify `OPENROUTER_API_KEY` is set and has sufficient credits |
+
+### Production URLs (Update These)
+
+After deployment, update these placeholders with your actual URLs:
+
+- **Frontend**: `https://youtube-script-generator.vercel.app`
+- **Backend**: `https://ysg-backend.onrender.com`
+- **Health Check**: `https://ysg-backend.onrender.com/api/health`
+- **Admin Panel**: `https://youtube-script-generator.vercel.app/admin`
+- **Razorpay Webhook**: `https://ysg-backend.onrender.com/api/payments/webhook`
 
 ### Environment Variables
 

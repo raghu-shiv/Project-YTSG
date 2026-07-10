@@ -164,7 +164,8 @@ RootLayout
 ### Shared Components
 ├── UI (Button, Input, Card, Badge, LoadingSpinner)
 ├── AuthNav — Auth-aware nav bar
-└── InlineEditor — Rich text editor with auto-save
+├── InlineEditor — Rich text editor with auto-save
+└── LazySection — IntersectionObserver-based lazy loading wrapper for below-fold content
 ```
 
 ### State Management (Zustand)
@@ -193,6 +194,9 @@ RootLayout
 | **Payment Verification** | Razorpay HMAC-SHA256 signature validation               |
 | **Secrets**              | Environment variables only, never in code               |
 | **Admin Promotion**      | ADMIN_SECRET_KEY env var — only known to app owner      |
+| **SEO**                  | Open Graph/Twitter Cards, JSON-LD structured data, sitemap.xml, robots.txt |
+| **Performance**          | Lazy loading (IntersectionObserver), font preloading, DNS prefetch, asset caching |
+| **HTTP Security**        | X-Frame-Options, X-Content-Type-Options, Permissions-Policy, Referrer-Policy |
 
 ## 6. Cost Optimization Strategy
 
@@ -236,3 +240,7 @@ RootLayout
 - [x] Team/workspace accounts (Team, TeamMember, TeamInvite models)
 - [x] Admin panel relocated to standalone `/admin` route (not in dashboard sidebar)
 - [x] Admin promotion via `POST /auth/make-admin` with `ADMIN_SECRET_KEY` env var
+- [x] Comprehensive SEO metadata (Open Graph, Twitter Cards, JSON-LD, sitemap, robots.txt)
+- [x] Lazy loading for below-fold content (LazySection component)
+- [x] Performance optimization (font preloading, DNS prefetch, asset caching, compression)
+- [x] Backend SEO module with AI-powered suggestions, scoring, and fallback
