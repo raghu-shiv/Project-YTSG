@@ -6,13 +6,13 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://youtubegenerator.ve
 
 export const metadata: Metadata = {
   title: {
-    default: "YouTube Script Generator | AI-Powered Script Creation",
-    template: "%s | YouTube Script Generator",
+    default: "YT Scripts | AI-Powered Script Creation",
+    template: "%s | YT Scripts",
   },
   description:
     "Generate voiceover-ready YouTube scripts, SEO suggestions, and thumbnail concepts with AI. Perfect for faceless channels, educational content, and tech reviews.",
   keywords: [
-    "YouTube script generator",
+    "YT Scripts",
     "AI script writer",
     "YouTube content creation",
     "video script maker",
@@ -23,9 +23,9 @@ export const metadata: Metadata = {
     "thumbnail ideas",
     "content creator tools",
   ],
-  authors: [{ name: "YouTube Script Generator" }],
-  creator: "YouTube Script Generator",
-  publisher: "YouTube Script Generator",
+  authors: [{ name: "YT Scripts" }],
+  creator: "YT Scripts",
+  publisher: "YT Scripts",
   metadataBase: new URL(siteUrl),
   alternates: {
     canonical: "/",
@@ -33,8 +33,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    siteName: "YouTube Script Generator",
-    title: "AI-Powered YouTube Script Generator",
+    siteName: "YT Scripts",
+    title: "AI-Powered YT Scripts",
     description:
       "Generate voiceover-ready YouTube scripts, SEO suggestions, and thumbnail concepts with AI.",
     url: siteUrl,
@@ -43,17 +43,17 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "YouTube Script Generator",
+        alt: "YT Scripts",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "AI-Powered YouTube Script Generator",
+    title: "AI-Powered YT Scripts",
     description:
       "Generate voiceover-ready YouTube scripts, SEO suggestions, and thumbnail concepts with AI.",
     images: ["/og-image.png"],
-    creator: "@ytscriptgen",
+    creator: "@ytscripts",
   },
   robots: {
     index: true,
@@ -86,7 +86,7 @@ export default function RootLayout({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "YouTube Script Generator",
+    name: "YT Scripts",
     applicationCategory: "MultimediaApplication",
     operatingSystem: "Web",
     description:
@@ -94,7 +94,7 @@ export default function RootLayout({
     url: siteUrl,
     author: {
       "@type": "Organization",
-      name: "YouTube Script Generator",
+      name: "YT Scripts",
     },
     offers: {
       "@type": "Offer",

@@ -110,7 +110,7 @@ export default function DashboardLayout({
   useEffect(() => {
     const token = localStorage.getItem("ysg-token");
     if (!token) {
-      router.push("/login");
+      router.push("/auth");
       return;
     }
 
@@ -121,13 +121,13 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (isInitialized && !isLoading && !user) {
-      router.push("/login");
+      router.push("/auth");
     }
   }, [isInitialized, isLoading, user, router]);
 
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    router.push("/auth");
   };
 
   if (isLoading || !isInitialized) {
@@ -197,7 +197,7 @@ export default function DashboardLayout({
                 <span className="text-white font-bold text-sm">YS</span>
               </div>
               <span className="text-base font-semibold text-gray-900">
-                YouTube Script<span className="text-indigo-600">Gen</span>
+                YT Scripts
               </span>
             </Link>
           </div>
@@ -247,7 +247,7 @@ export default function DashboardLayout({
                 <p className="text-xs text-gray-500 truncate">{user?.email}</p>
               </div>
             </div>
-            <div className="px-4 mb-3">
+            <div className="px-4 mb-3 space-y-2">
               <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 rounded-xl">
                 <svg
                   className="w-4 h-4 text-indigo-600"
@@ -259,11 +259,29 @@ export default function DashboardLayout({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
                 </svg>
                 <span className="text-sm font-medium text-indigo-700">
-                  {user?.creditBalance ?? 0} Credits
+                  {user?.scriptCredits ?? 0} Script Credits
+                </span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 rounded-xl">
+                <svg
+                  className="w-4 h-4 text-purple-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <span className="text-sm font-medium text-purple-700">
+                  {user?.thumbnailCredits ?? 0} Thumbnail Credits
                 </span>
               </div>
             </div>

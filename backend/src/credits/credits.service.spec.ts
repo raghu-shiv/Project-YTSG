@@ -32,18 +32,20 @@ describe("CreditsService", () => {
   });
 
   describe("getBalance", () => {
-    it("should return the user's credit balance", async () => {
+    it("should return the user's credit balances", async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: "user-1",
-        creditBalance: 15,
+        scriptCredits: 15,
+        thumbnailCredits: 5,
       });
 
       const result = await creditsService.getBalance("user-1");
 
-      expect(result.balance).toBe(15);
+      expect(result.scriptCredits).toBe(15);
+      expect(result.thumbnailCredits).toBe(5);
       expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
         where: { id: "user-1" },
-        select: { creditBalance: true },
+        select: { scriptCredits: true, thumbnailCredits: true },
       });
     });
 
@@ -52,7 +54,8 @@ describe("CreditsService", () => {
 
       const result = await creditsService.getBalance("nonexistent");
 
-      expect(result.balance).toBe(0);
+      expect(result.scriptCredits).toBe(0);
+      expect(result.thumbnailCredits).toBe(0);
     });
   });
 

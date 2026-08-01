@@ -1,33 +1,20 @@
 #!/bin/sh
-# Don't use -e because we handle errors manually
+
+echo "=== Starting Backend ==="
 
 # Generate Prisma client
 npx prisma generate 2>&1
-echo "Prisma client generated successfully"
+echo "✓ Prisma client generated"
 
-# Run Prisma migrations before starting the app
+# Run Prisma migrations
 npx prisma db push --accept-data-loss 2>&1
-echo "Prisma migrations applied successfully"
+echo "✓ Prisma migrations applied"
 
-# Build with nest build first (uses SWC by default, faster)
-echo "Building NestJS app..."
-npx nest build 2>&1 || true
-
-# Check if build succeeded
-if [ -f dist/main.js ]; then
-  echo "Build successful, starting app with tsconfig-paths..."
-  exec node -r tsconfig-paths/register dist/main
+# Check if we're in production (dist folder exists) or development
+if [ -d "./dist" ]; then
+  echo "✓ Starting app with compiled JS (production)..."
+  exec node dist/main.js
+else
+  echo "✓ Starting app with ts-node (development)..."
+  exec npx ts-node -r tsconfig-paths/register src/main.ts
 fi
-
-# If that failed, try tsc directly
-echo "First build failed, trying tsc..."
-npx tsc 2>&1 || true
-
-if [ -f dist/main.js ]; then
-  echo "TSC build successful, starting app..."
-  exec node -r tsconfig-paths/register dist/main
-fi
-
-# Final fallback: run directly with ts-node
-echo "Build failed. Running directly with ts-node..."
-exec npx ts-node -r tsconfig-paths/register src/main.ts

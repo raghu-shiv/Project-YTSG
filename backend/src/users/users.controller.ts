@@ -15,7 +15,7 @@ export class UsersController {
   @Put("profile")
   updateProfile(
     @Req() req: any,
-    @Body() body: { name?: string; avatarUrl?: string },
+    @Body() body: { name?: string; avatarUrl?: string; phone?: string },
   ) {
     return this.usersService.updateProfile(req.user.id, body);
   }

@@ -8,6 +8,9 @@ import { useAuthStore } from "@/stores/auth-store";
 
 export default function AdminPage() {
   const router = useRouter();
+  useEffect(() => {
+    document.title = "Admin Panel | YT Scripts";
+  }, []);
   const user = useAuthStore((state) => state.user);
   const isInitialized = useAuthStore((state) => state.isInitialized);
   const isLoading = useAuthStore((state) => state.isLoading);
@@ -24,7 +27,7 @@ export default function AdminPage() {
   useEffect(() => {
     const token = localStorage.getItem("ysg-token");
     if (!token) {
-      router.push("/login");
+      router.push("/auth");
       return;
     }
 
@@ -48,7 +51,7 @@ export default function AdminPage() {
         })
         .catch(() => setLoading(false));
     } else if (isInitialized && !isLoading && !user) {
-      router.push("/login");
+      router.push("/auth");
     }
   }, [isInitialized, isLoading, user, router]);
 

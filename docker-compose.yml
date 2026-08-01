@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -18,6 +16,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    # ⚠️ Production: Use Supabase Postgres instead of this service.
+    # See .env.example for Supabase connection string format.
 
   redis:
     image: redis:7-alpine
@@ -30,6 +30,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    # ⚠️ Production: Use Upstash Redis instead of this service.
+    # See .env.example for Upstash connection details.
 
   backend:
     build:
@@ -42,7 +44,14 @@ services:
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://ysg_user:ysg_pass@postgres:5432/ysg_db?schema=public
-      REDIS_URL: redis://redis:6379
+      # Production: Set DATABASE_URL to your Supabase connection string (with ?pgbouncer=true)
+      # Example: postgresql://user:pass@aws-0-region.pooler.supabase.com:6543/postgres?pgbouncer=true&schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
+      REDIS_TLS_ENABLED: "false"
+      # Production: Set REDIS_HOST/REDIS_PORT/REDIS_PASSWORD from Upstash REST API details
+      # Production: Set REDIS_TLS_ENABLED=true (Upstash requires TLS)
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
@@ -73,6 +82,7 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
       DATABASE_URL: postgresql://ysg_user:ysg_pass@postgres:5432/ysg_db?schema=public
     depends_on:
       - backend

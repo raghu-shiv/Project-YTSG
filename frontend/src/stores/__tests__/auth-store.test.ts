@@ -87,16 +87,28 @@ describe("auth-store", () => {
     expect(localStorage.getItem("ysg-token")).toBeNull();
   });
 
-  it("should update credit balance", () => {
+  it("should update script credits", () => {
     useAuthStore.setState({
-      user: { id: "1", email: "test@test.com", name: "Test", creditBalance: 5 },
+      user: { id: "1", email: "test@test.com", name: "Test", scriptCredits: 5 },
       isInitialized: true,
     });
 
-    useAuthStore.getState().updateCredits(10);
+    useAuthStore.getState().updateScriptCredits(10);
 
     const state = useAuthStore.getState();
-    expect(state.user?.creditBalance).toBe(10);
+    expect(state.user?.scriptCredits).toBe(10);
+  });
+
+  it("should update thumbnail credits", () => {
+    useAuthStore.setState({
+      user: { id: "1", email: "test@test.com", name: "Test", thumbnailCredits: 3 },
+      isInitialized: true,
+    });
+
+    useAuthStore.getState().updateThumbnailCredits(8);
+
+    const state = useAuthStore.getState();
+    expect(state.user?.thumbnailCredits).toBe(8);
   });
 
   it("should set user via setUser", () => {

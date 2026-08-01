@@ -13,33 +13,95 @@ export class PaymentsController {
     return this.paymentsService.getPricing();
   }
 
-  @Post("create-order")
+  @Post("create-recurring-subscription")
   @UseGuards(JwtAuthGuard)
-  createOrder(
+  createRecurringSubscription(
     @Req() req: any,
-    @Body() body: { amount: number; credits: number },
+    @Body() body: { plan: string },
   ) {
-    return this.paymentsService.createOrder(
+    return this.paymentsService.createRecurringSubscription(
       req.user.id,
-      body.amount,
-      body.credits,
+      body.plan,
     );
   }
 
-  @Post("verify")
-  @Public()
-  verifyPayment(
+  @Post("create-one-time-purchase")
+  @UseGuards(JwtAuthGuard)
+  createOneTimePurchase(
+    @Req() req: any,
+    @Body() body: { plan: string },
+  ) {
+    return this.paymentsService.createOneTimePurchase(
+      req.user.id,
+      body.plan,
+    );
+  }
+
+  @Post("verify-recurring-subscription")
+  @UseGuards(JwtAuthGuard)
+  verifyRecurringSubscription(
+    @Req() req: any,
+    @Body()
+    body: {
+      razorpaySubscriptionId: string;
+      razorpayPaymentId: string;
+      razorpaySignature: string;
+      plan: string;
+      scriptCredits: number;
+      thumbnailCredits: number;
+    },
+  ) {
+    return this.paymentsService.verifyRecurringSubscription(
+      req.user.id,
+      body.razorpaySubscriptionId,
+      body.razorpayPaymentId,
+      body.razorpaySignature,
+      body.plan,
+      body.scriptCredits,
+      body.thumbnailCredits,
+    );
+  }
+
+  @Post("verify-one-time-purchase")
+  @UseGuards(JwtAuthGuard)
+  verifyOneTimePurchase(
+    @Req() req: any,
     @Body()
     body: {
       razorpayOrderId: string;
       razorpayPaymentId: string;
       razorpaySignature: string;
+      plan: string;
+      scriptCredits: number;
+      thumbnailCredits: number;
     },
   ) {
-    return this.paymentsService.verifyPayment(
+    return this.paymentsService.verifyOneTimePurchase(
+      req.user.id,
       body.razorpayOrderId,
       body.razorpayPaymentId,
       body.razorpaySignature,
+      body.plan,
+      body.scriptCredits,
+      body.thumbnailCredits,
+    );
+  }
+
+  @Get("subscriptions")
+  @UseGuards(JwtAuthGuard)
+  getUserSubscriptions(@Req() req: any) {
+    return this.paymentsService.getUserSubscriptions(req.user.id);
+  }
+
+  @Post("toggle-auto-renew")
+  @UseGuards(JwtAuthGuard)
+  toggleAutoRenew(
+    @Req() req: any,
+    @Body() body: { subscriptionId: string },
+  ) {
+    return this.paymentsService.toggleAutoRenew(
+      req.user.id,
+      body.subscriptionId,
     );
   }
 }

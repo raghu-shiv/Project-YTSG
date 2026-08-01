@@ -5,6 +5,9 @@ generator client {
 datasource db {
     provider = "postgresql"
     url      = env("DATABASE_URL")
+    // Required for Supabase PgBouncer connection pooling
+    // See: https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/database-connections/pgbouncer
+    relationMode = "prisma"
 }
 
 enum AuthProvider {
@@ -26,8 +29,9 @@ enum CreditTransactionType {
 
 enum SubscriptionPlan {
     free
-    bundle_30
-    bundle_60
+    starter
+    pro
+    premium
 }
 
 enum SubscriptionStatus {
@@ -58,17 +62,21 @@ enum VideoType {
 }
 
 model User {
-    id            String       @id @default(uuid())
-    email         String       @unique
-    passwordHash  String?
-    name          String?
-    avatarUrl     String?
-    authProvider  AuthProvider @default(local)
-    googleId      String?      @unique
-    role          UserRole     @default(user)
-    creditBalance Int          @default(0)
-    createdAt     DateTime     @default(now()) @map("created_at")
-    updatedAt     DateTime     @updatedAt @map("updated_at")
+    id               String       @id @default(uuid())
+    email            String       @unique
+    passwordHash     String?
+    name             String?
+    avatarUrl        String?
+    phone            String?
+    phoneVerified    Boolean      @default(false) @map("phone_verified")
+    emailVerified    Boolean      @default(false) @map("email_verified")
+    authProvider     AuthProvider @default(local)
+    googleId         String?      @unique
+    role             UserRole     @default(user)
+    scriptCredits    Int          @default(0) @map("script_credits")
+    thumbnailCredits Int          @default(0) @map("thumbnail_credits")
+    createdAt        DateTime     @default(now()) @map("created_at")
+    updatedAt        DateTime     @updatedAt @map("updated_at")
 
     creditTransactions CreditTransaction[]
     subscriptions      Subscription[]
@@ -76,8 +84,24 @@ model User {
     scripts            Script[]
     aiUsageLogs        AiUsageLog[]
     teamMembers        TeamMember[]
+    otpVerifications   OtpVerification[]
 
     @@map("users")
+}
+
+model OtpVerification {
+    id        String   @id @default(uuid())
+    userId    String   @map("user_id")
+    target    String?  // email or phone number
+    type      String   @default("email") // "email" or "phone"
+    otp       String
+    expiresAt DateTime @map("expires_at")
+    used      Boolean  @default(false)
+    createdAt DateTime @default(now()) @map("created_at")
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@map("otp_verifications")
 }
 
 model CreditTransaction {
@@ -99,7 +123,8 @@ model Subscription {
     id                     String             @id @default(uuid())
     userId                 String             @map("user_id")
     plan                   SubscriptionPlan
-    creditsPerMonth        Int                @map("credits_per_month")
+    scriptCredits          Int                @default(0) @map("script_credits")
+    thumbnailCredits       Int                @default(0) @map("thumbnail_credits")
     status                 SubscriptionStatus
     razorpaySubscriptionId String?            @map("razorpay_subscription_id")
     currentPeriodStart     DateTime?          @map("current_period_start")
@@ -109,6 +134,7 @@ model Subscription {
 
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+    @@unique([userId, plan])
     @@map("subscriptions")
 }
 

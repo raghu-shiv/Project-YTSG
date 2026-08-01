@@ -30,7 +30,8 @@ export class AuthService {
         email,
         passwordHash,
         name: name || email.split("@")[0],
-        creditBalance: 5, // Free signup credits
+        scriptCredits: 2, // Free signup script credits
+        thumbnailCredits: 1, // Free signup thumbnail credits
       },
     });
 
@@ -39,9 +40,9 @@ export class AuthService {
       data: {
         userId: user.id,
         type: "purchase",
-        amount: 5,
-        balanceAfter: 5,
-        description: "Welcome credits",
+        amount: 3,
+        balanceAfter: 3,
+        description: "Welcome credits (2 script + 1 thumbnail)",
       },
     });
 
@@ -51,8 +52,12 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
+        phone: user.phone,
+        phoneVerified: user.phoneVerified,
+        emailVerified: user.emailVerified,
         role: user.role,
-        creditBalance: user.creditBalance,
+        scriptCredits: user.scriptCredits,
+        thumbnailCredits: user.thumbnailCredits,
       },
       token,
     };
@@ -75,8 +80,12 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
+        phone: user.phone,
+        phoneVerified: user.phoneVerified,
+        emailVerified: user.emailVerified,
         role: user.role,
-        creditBalance: user.creditBalance,
+        scriptCredits: user.scriptCredits,
+        thumbnailCredits: user.thumbnailCredits,
       },
       token,
     };
@@ -116,7 +125,8 @@ export class AuthService {
             googleId: googleUser.googleId,
             authProvider: "google",
             avatarUrl: googleUser.avatarUrl,
-            creditBalance: 5,
+            scriptCredits: 2,
+            thumbnailCredits: 1,
           },
         });
 
@@ -124,9 +134,9 @@ export class AuthService {
           data: {
             userId: user.id,
             type: "purchase",
-            amount: 5,
-            balanceAfter: 5,
-            description: "Welcome credits",
+            amount: 3,
+            balanceAfter: 7,
+            description: "Welcome credits (2 script + 1 thumbnail)",
           },
         });
       }
@@ -138,8 +148,12 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
+        phone: user.phone,
+        phoneVerified: user.phoneVerified,
+        emailVerified: user.emailVerified,
         role: user.role,
-        creditBalance: user.creditBalance,
+        scriptCredits: user.scriptCredits,
+        thumbnailCredits: user.thumbnailCredits,
       },
       token,
     };
@@ -147,8 +161,6 @@ export class AuthService {
 
   /**
    * Promote a user to admin role using a secret admin key.
-   * Only authenticated users can call this endpoint, and they must
-   * provide the correct ADMIN_SECRET_KEY environment variable value.
    */
   async makeAdmin(userId: string, secretKey: string) {
     const adminSecretKey = process.env.ADMIN_SECRET_KEY;
@@ -173,7 +185,8 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
-        creditBalance: user.creditBalance,
+        scriptCredits: user.scriptCredits,
+        thumbnailCredits: user.thumbnailCredits,
       },
     };
   }

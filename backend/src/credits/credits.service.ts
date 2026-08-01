@@ -8,9 +8,12 @@ export class CreditsService {
   async getBalance(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { creditBalance: true },
+      select: { scriptCredits: true, thumbnailCredits: true },
     });
-    return { balance: user?.creditBalance || 0 };
+    return {
+      scriptCredits: user?.scriptCredits || 0,
+      thumbnailCredits: user?.thumbnailCredits || 0,
+    };
   }
 
   async getTransactions(userId: string, page = 1, limit = 20) {

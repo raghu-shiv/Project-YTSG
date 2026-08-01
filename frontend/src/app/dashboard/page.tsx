@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Badge } from "@/components/ui";
+import { useScriptsStore, useCreditsStore } from "@/stores";
 import { apiClient } from "@/lib/api";
 
 const videoTypes = [
@@ -34,17 +35,24 @@ const videoTypes = [
 
 export default function DashboardPage() {
   const router = useRouter();
+  useEffect(() => {
+    document.title = "Dashboard | YT Scripts";
+  }, []);
   const [topic, setTopic] = useState("");
   const [videoType, setVideoType] = useState("educational");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [recentScripts, setRecentScripts] = useState<any[]>([]);
+
+  const scripts = useScriptsStore((state) => state.scripts);
+  const fetchScripts = useScriptsStore((state) => state.fetchScripts);
+  const fetchBalance = useCreditsStore((state) => state.fetchBalance);
+
+  const recentScripts = scripts.slice(0, 5);
 
   useEffect(() => {
-    apiClient("/scripts?limit=5")
-      .then((data) => setRecentScripts(data.scripts || []))
-      .catch(() => {});
-  }, []);
+    fetchScripts();
+    fetchBalance();
+  }, [fetchScripts, fetchBalance]);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +64,8 @@ export default function DashboardPage() {
         method: "POST",
         body: { topic, videoType },
       });
+      // Refresh scripts and credits after generation
+      await Promise.all([fetchScripts(), fetchBalance()]);
       router.push(`/dashboard/scripts/${data.id}`);
     } catch (err: any) {
       setError(err.message || "Failed to generate script");

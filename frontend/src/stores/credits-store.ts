@@ -12,18 +12,20 @@ type Transaction = {
 };
 
 type CreditsState = {
-  balance: number;
+  scriptCredits: number;
+  thumbnailCredits: number;
   transactions: Transaction[];
   isLoading: boolean;
   error: string | null;
-  fetchBalance: () => Promise<void>;
+  fetchBalance: () => Promise<{ scriptCredits: number; thumbnailCredits: number }>;
   fetchTransactions: () => Promise<void>;
   purchaseCredits: (planId: string, amount: number) => Promise<void>;
   clearError: () => void;
 };
 
 export const useCreditsStore = create<CreditsState>()((set) => ({
-  balance: 0,
+  scriptCredits: 0,
+  thumbnailCredits: 0,
   transactions: [],
   isLoading: false,
   error: null,
@@ -31,12 +33,16 @@ export const useCreditsStore = create<CreditsState>()((set) => ({
   fetchBalance: async () => {
     try {
       const data = await apiClient("/credits/balance");
-      const balance = data.balance ?? data.creditBalance ?? 0;
-      set({ balance });
+      const scriptCredits = data.scriptCredits ?? 0;
+      const thumbnailCredits = data.thumbnailCredits ?? 0;
+      set({ scriptCredits, thumbnailCredits });
       // Sync with auth store so sidebar shows correct balance
-      useAuthStore.getState().updateCredits(balance);
+      useAuthStore.getState().updateScriptCredits(scriptCredits);
+      useAuthStore.getState().updateThumbnailCredits(thumbnailCredits);
+      return { scriptCredits, thumbnailCredits };
     } catch (err: any) {
       set({ error: err.message || "Failed to fetch balance" });
+      return { scriptCredits: 0, thumbnailCredits: 0 };
     }
   },
 

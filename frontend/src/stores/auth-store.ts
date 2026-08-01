@@ -6,8 +6,12 @@ type User = {
   id: string;
   name?: string;
   email?: string;
+  phone?: string;
+  phoneVerified?: boolean;
+  emailVerified?: boolean;
   role?: string;
-  creditBalance?: number;
+  scriptCredits?: number;
+  thumbnailCredits?: number;
 };
 
 type AuthState = {
@@ -20,7 +24,9 @@ type AuthState = {
   logout: () => void;
   fetchProfile: () => Promise<void>;
   setUser: (user: User) => void;
-  updateCredits: (balance: number) => void;
+  setToken: (token: string) => void;
+  updateScriptCredits: (credits: number) => void;
+  updateThumbnailCredits: (credits: number) => void;
   initialize: () => Promise<void>;
 };
 
@@ -39,7 +45,6 @@ export const useAuthStore = create<AuthState>()(
             method: "POST",
             body: { email, password },
           });
-          // Save token to both localStorage (for apiClient) and persisted store
           localStorage.setItem("ysg-token", data.token);
           set({ token: data.token, user: data.user, isLoading: false, isInitialized: true });
         } catch (err: any) {
@@ -91,21 +96,31 @@ export const useAuthStore = create<AuthState>()(
         set({ user });
       },
 
-      updateCredits: (balance: number) => {
+      setToken: (token: string) => {
+        localStorage.setItem("ysg-token", token);
+        set({ token });
+      },
+
+      updateScriptCredits: (credits: number) => {
         const { user } = get();
         if (user) {
-          set({ user: { ...user, creditBalance: balance } });
+          set({ user: { ...user, scriptCredits: credits } });
+        }
+      },
+
+      updateThumbnailCredits: (credits: number) => {
+        const { user } = get();
+        if (user) {
+          set({ user: { ...user, thumbnailCredits: credits } });
         }
       },
 
       initialize: async () => {
-        // Read token directly from localStorage (persist may not be hydrated yet)
         const token = localStorage.getItem("ysg-token");
         if (!token) {
           set({ isInitialized: true });
           return;
         }
-        // Ensure token is in the store
         set({ token });
         try {
           const user = await apiClient("/users/profile");

@@ -34,7 +34,7 @@ export class ScriptGenerationProcessor extends WorkerHost {
       });
 
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      const newBalance = (user?.creditBalance || 0) + 1;
+      const newBalance = (user?.scriptCredits || 0) + 1;
 
       await this.prisma.creditTransaction.create({
         data: {
@@ -48,7 +48,7 @@ export class ScriptGenerationProcessor extends WorkerHost {
 
       await this.prisma.user.update({
         where: { id: userId },
-        data: { creditBalance: newBalance },
+        data: { scriptCredits: newBalance },
       });
     }
   }

@@ -12,7 +12,10 @@ export default function ScriptsPage() {
   const fetchScripts = useScriptsStore((state) => state.fetchScripts);
 
   useEffect(() => {
-    fetchScripts();
+    document.title = "My Scripts | YT Scripts";
+    fetchScripts().catch(() => {
+      // Error handled silently in store
+    });
   }, [fetchScripts]);
 
   const getStatusBadge = (status: string) => {
@@ -20,90 +23,113 @@ export default function ScriptsPage() {
       case "completed":
         return <Badge variant="success">Completed</Badge>;
       case "generating":
-        return <Badge variant="warning">Generating</Badge>;
+        return <Badge variant="warning">Generating...</Badge>;
       case "failed":
-        return <Badge variant="danger">Failed</Badge>;
+        return <Badge variant="error">Failed</Badge>;
       default:
-        return <Badge>{status}</Badge>;
+        return <Badge variant="default">{status}</Badge>;
     }
   };
 
-  if (isLoading) {
-    return <LoadingSpinner size="lg" className="py-20" />;
+  const getVideoTypeIcon = (videoType: string) => {
+    switch (videoType?.toLowerCase()) {
+      case "educational":
+        return "🎓";
+      case "tech review":
+        return "💻";
+      case "tutorial":
+        return "📖";
+      case "vlog":
+        return "🎬";
+      case "listicle":
+        return "📋";
+      case "review":
+        return "⭐";
+      default:
+        return "📺";
+    }
+  };
+
+  if (isLoading && scripts.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Scripts</h1>
           <p className="text-gray-500 mt-1">
-            All your generated scripts in one place
+            {scripts.length} {scripts.length === 1 ? "script" : "scripts"} generated
           </p>
         </div>
-        <Button onClick={() => router.push("/dashboard")} variant="primary">
-          <svg
-            className="w-4 h-4 mr-1.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          New Script
-        </Button>
+        <Button onClick={() => router.push("/dashboard")}>Generate New</Button>
       </div>
 
       {scripts.length === 0 ? (
-        <Card variant="default" padding="lg" className="text-center py-16">
-          <div className="text-6xl mb-4">📄</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">
-            No scripts yet
-          </h3>
-          <p className="text-sm text-gray-500 mb-6">
-            Create your first script to get started
-          </p>
-          <Button
-            onClick={() => router.push("/dashboard")}
-            variant="primary"
-            size="lg"
-          >
-            Create Your First Script
-          </Button>
+        <Card variant="outlined" padding="lg">
+          <div className="text-center py-12">
+            <div className="text-4xl mb-4" aria-hidden="true">📝</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No scripts yet
+            </h3>
+            <p className="text-gray-500 mb-6">
+              Generate your first AI-powered YouTube script.
+            </p>
+            <Button onClick={() => router.push("/dashboard")}>
+              Create Your First Script
+            </Button>
+          </div>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {scripts.map((script: any, index: number) => (
-            <div
+        <div className="space-y-4" role="list" aria-label="Script list">
+          {scripts.map((script: any) => (
+            <Card
               key={script.id}
+              variant="outlined"
+              padding="md"
+              className="cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all"
               onClick={() => router.push(`/dashboard/scripts/${script.id}`)}
-              className="group bg-white p-5 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:border-indigo-200 hover:shadow-md transition-all duration-200 animate-fade-in"
-              style={{ animationDelay: `${index * 30}ms` }}
+              role="listitem"
+              tabIndex={0}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  router.push(`/dashboard/scripts/${script.id}`);
+                }
+              }}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center text-white text-lg shadow-sm">
-                    📝
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
+                <div className="flex items-center gap-4 min-w-0">
+                  <span className="text-2xl flex-shrink-0" aria-hidden="true">
+                    {getVideoTypeIcon(script.videoType)}
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-gray-900 truncate">
                       {script.title || script.topic}
                     </h3>
                     <p className="text-sm text-gray-500 mt-0.5">
-                      {script.videoType?.replace(/_/g, " ")} ·{" "}
-                      {script.wordCount || 0} words ·{" "}
-                      {new Date(script.createdAt).toLocaleDateString()}
+                      {script.videoType
+                        ? `${script.videoType} • `
+                        : ""}
+                      {script.wordCount
+                        ? `${script.wordCount} words`
+                        : ""}
                     </p>
                   </div>
                 </div>
-                {getStatusBadge(script.status)}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  {getStatusBadge(script.status)}
+                  <span className="text-xs text-gray-400">
+                    {new Date(script.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}

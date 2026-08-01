@@ -61,10 +61,10 @@ describe("ScriptService", () => {
     it("should create a script and deduct credits", async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: "user-1",
-        creditBalance: 10,
+        scriptCredits: 10,
       });
       mockPrisma.creditTransaction.create.mockResolvedValue({});
-      mockPrisma.user.update.mockResolvedValue({ creditBalance: 9 });
+      mockPrisma.user.update.mockResolvedValue({ scriptCredits: 9 });
       mockPrisma.script.create.mockResolvedValue({
         id: "script-1",
         userId: "user-1",
@@ -97,7 +97,7 @@ describe("ScriptService", () => {
     it("should throw BadRequestException when user has insufficient credits", async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: "user-1",
-        creditBalance: 0,
+        scriptCredits: 0,
       });
 
       await expect(

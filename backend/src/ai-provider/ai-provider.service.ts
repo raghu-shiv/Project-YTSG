@@ -37,13 +37,6 @@ export class AiProviderService {
     "anthropic/claude-3.5-sonnet", // Premium fallback
   ];
 
-  // Image generation models
-  private readonly imageModels: string[] = [
-    "openai/dall-e-3",
-    "stabilityai/stable-diffusion-xl",
-    "black-forest-labs/flux-schnell",
-  ];
-
   // Model pricing (per 1K tokens in USD) - approximate costs
   private readonly modelCosts: Record<
     string,
@@ -62,6 +55,15 @@ export class AiProviderService {
     if (!this.apiKey) {
       this.logger.warn("OPENROUTER_API_KEY not set. AI features will fail.");
     }
+  }
+
+  private getHeaders() {
+    return {
+      Authorization: `Bearer ${this.apiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": process.env.FRONTEND_URL || "http://localhost:3000",
+      "X-Title": "YT Scripts",
+    };
   }
 
   async generateCompletion(
@@ -127,13 +129,8 @@ export class AiProviderService {
         max_tokens: maxTokens,
       },
       {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": process.env.FRONTEND_URL || "http://localhost:3000",
-          "X-Title": "YouTube Script Generator",
-        },
-        timeout: 60000, // 60 second timeout
+        headers: this.getHeaders(),
+        timeout: 60000,
       },
     );
 
@@ -143,7 +140,6 @@ export class AiProviderService {
     const promptTokens = usage.prompt_tokens || 0;
     const completionTokens = usage.completion_tokens || 0;
 
-    // Calculate cost
     const costs = this.modelCosts[model] || {
       input: 0.00015,
       output: 0.0006,
@@ -165,62 +161,114 @@ export class AiProviderService {
     prompt: string,
     options: { model?: string; size?: string } = {},
   ): Promise<ImageGenerationResult> {
-    const preferredModel = options.model || "openai/dall-e-3";
-    const size = options.size || "1024x1024";
+    // Image generation uses the /chat/completions endpoint with output_modalities: ["image"]
+    // Docs: https://openrouter.ai/docs/guides/overview/multimodal/image-generation
+    const model = options.model || "google/gemini-3.1-flash-lite-image";
 
-    const modelsToTry = [
-      preferredModel,
-      ...this.imageModels.filter((m) => m !== preferredModel),
-    ];
-
-    let lastError: Error | null = null;
-
-    for (const model of modelsToTry) {
-      try {
-        const result = await this.callImageModel(model, prompt, size);
-        return result;
-      } catch (error: any) {
-        lastError = error;
-        this.logger.warn(
-          `Image model ${model} failed: ${error.message}. Trying next...`,
-        );
-      }
-    }
-
-    throw new Error(`Image generation failed: ${lastError?.message}`);
-  }
-
-  private async callImageModel(
-    model: string,
-    prompt: string,
-    size: string,
-  ): Promise<ImageGenerationResult> {
-    const response = await axios.post(
-      `${this.baseUrl}/image/generations`,
-      {
-        model,
-        prompt,
-        size,
-        n: 1,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": process.env.FRONTEND_URL || "http://localhost:3000",
-          "X-Title": "YouTube Script Generator",
+    try {
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        {
+          model,
+          messages: [
+            {
+              role: "user",
+              content: `YouTube thumbnail: ${prompt}. Professional, high-contrast, eye-catching design suitable for a YouTube video thumbnail.`,
+            },
+          ],
+          output_modalities: ["image"],
+          max_tokens: 8192,
         },
-        timeout: 120000, // 2 minute timeout for image generation
-      },
-    );
+        {
+          headers: this.getHeaders(),
+          timeout: 120000,
+        },
+      );
 
-    const data = response.data;
-    const url = data.data?.[0]?.url || "";
+      const data = response.data;
+      const message = data.choices?.[0]?.message;
 
-    // Estimate cost (image models are typically $0.02-$0.08 per image)
-    const costUsd = model.includes("dall-e") ? 0.04 : 0.02;
+      if (!message) {
+        throw new Error("No message in response from image model");
+      }
 
-    return { url, model, costUsd };
+      // The image comes in the separate `images` field on the message
+      // Response structure: { role, content, refusal, reasoning, reasoning_details, images }
+      // images can be an array: [{"type":"image_url","image_url":{"url":"data:image/jpeg;base64,..."}}]
+      // or an array-like object: {"0":{"type":"image_url","image_url":{"url":"..."}}}
+      if (message.images) {
+        // Normalize to array: handle both true arrays and array-like objects
+        let imagesArray: any[] = [];
+        if (Array.isArray(message.images)) {
+          imagesArray = message.images;
+        } else if (typeof message.images === "object") {
+          // Try to extract values from array-like object
+          imagesArray = Object.values(message.images);
+        }
+
+        if (imagesArray.length > 0) {
+          const imageItem = imagesArray[0];
+
+          // Image can be a data URL string directly
+          if (typeof imageItem === "string") {
+            return { url: imageItem, model, costUsd: data.usage?.cost || 0.0001 };
+          }
+
+          // Standard format: { type: "image_url", image_url: { url: "data:..." } }
+          if (imageItem.image_url) {
+            const imgUrl = typeof imageItem.image_url === "string" ? imageItem.image_url : imageItem.image_url.url;
+            if (imgUrl) {
+              return { url: imgUrl, model, costUsd: data.usage?.cost || 0.0001 };
+            }
+          }
+
+          // Direct url field
+          if (imageItem.url) {
+            return { url: imageItem.url, model, costUsd: data.usage?.cost || 0.0001 };
+          }
+
+          // Base64 fields
+          if (imageItem.b64_json || imageItem.base64) {
+            const b64 = imageItem.b64_json || imageItem.base64;
+            return { url: `data:image/png;base64,${b64}`, model, costUsd: data.usage?.cost || 0.0001 };
+          }
+
+          // Other common field names
+          if (imageItem.data) {
+            return { url: `data:image/png;base64,${imageItem.data}`, model, costUsd: data.usage?.cost || 0.0001 };
+          }
+          if (imageItem.image) {
+            return { url: imageItem.image, model, costUsd: data.usage?.cost || 0.0001 };
+          }
+        }
+      }
+
+      // Fallback: check message.content as array of content parts
+      if (message.content && Array.isArray(message.content)) {
+        const imagePart = message.content.find(
+          (part: any) => part.type === "image_url" && part.image_url?.url,
+        );
+        if (imagePart) {
+          return { url: imagePart.image_url.url, model, costUsd: data.usage?.cost || 0.0001 };
+        }
+      }
+
+      // Fallback: check for base64-encoded image attached to the message
+      if (message.base64_image || message.b64_json) {
+        const b64 = message.base64_image || message.b64_json;
+        return { url: `data:image/png;base64,${b64}`, model, costUsd: data.usage?.cost || 0.0001 };
+      }
+
+      // Log the available keys to help debug
+      this.logger.warn(
+        `Could not extract image from response. Available keys: ${Object.keys(message).join(", ")}`,
+      );
+
+      throw new Error("No image data found in model response");
+    } catch (error: any) {
+      this.logger.warn(`Image model ${model} failed: ${error.message}`);
+      throw error;
+    }
   }
 
   async generateScript(

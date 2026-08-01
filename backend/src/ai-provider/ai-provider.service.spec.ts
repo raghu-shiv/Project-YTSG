@@ -59,8 +59,8 @@ describe("AiProviderService", () => {
 
     it("should fallback to next model when preferred model fails", async () => {
       mockedAxios.post
-        .mockRejectedValueOnce(mockErrorResponse) // First model fails
-        .mockResolvedValueOnce(mockSuccessResponse); // Second model succeeds
+        .mockRejectedValueOnce(mockErrorResponse)
+        .mockResolvedValueOnce(mockSuccessResponse);
 
       const result = await service.generateCompletion(
         "Test prompt",
@@ -81,7 +81,6 @@ describe("AiProviderService", () => {
 
     it("should handle empty API key gracefully", async () => {
       delete process.env.OPENROUTER_API_KEY;
-      // Re-initialize to trigger warning
       const module = await Test.createTestingModule({
         providers: [AiProviderService],
       }).compile();
@@ -145,33 +144,47 @@ describe("AiProviderService", () => {
   });
 
   describe("generateImage", () => {
-    it("should generate an image successfully", async () => {
-      mockedAxios.post.mockResolvedValue({
-        data: {
-          data: [{ url: "https://example.com/image.png" }],
-        },
-      });
+    const mockImageResponse = {
+      data: {
+        choices: [{
+          message: {
+            role: "assistant",
+            content: "",
+            images: [
+              { type: "image_url", image_url: { url: "data:image/jpeg;base64,/9j/4AAQ==" } }
+            ],
+          },
+        }],
+        usage: { cost: 0.0001 },
+      },
+    };
+
+    const mockErrorResponse = new Error("Model unavailable");
+
+    it("should generate an image successfully via /chat/completions", async () => {
+      mockedAxios.post.mockResolvedValue(mockImageResponse);
 
       const result = await service.generateImage("A test image prompt");
 
-      expect(result.url).toBe("https://example.com/image.png");
-      expect(result.model).toBe("openai/dall-e-3");
+      expect(result.url).toBe("data:image/jpeg;base64,/9j/4AAQ==");
+      expect(result.model).toBe("google/gemini-3.1-flash-lite-image");
       expect(result.costUsd).toBeGreaterThan(0);
+      // Verify it uses the correct endpoint
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining("/chat/completions"),
+        expect.objectContaining({
+          output_modalities: ["image"],
+        }),
+        expect.any(Object),
+      );
     });
 
-    it("should fallback to next image model when first fails", async () => {
-      mockedAxios.post
-        .mockRejectedValueOnce(new Error("Model unavailable"))
-        .mockResolvedValueOnce({
-          data: {
-            data: [{ url: "https://example.com/fallback-image.png" }],
-          },
-        });
+    it("should throw error when image generation fails", async () => {
+      mockedAxios.post.mockRejectedValue(mockErrorResponse);
 
-      const result = await service.generateImage("Test prompt");
-
-      expect(result.url).toBe("https://example.com/fallback-image.png");
-      expect(mockedAxios.post).toHaveBeenCalledTimes(2);
+      await expect(
+        service.generateImage("Test prompt"),
+      ).rejects.toThrow("Model unavailable");
     });
   });
 });

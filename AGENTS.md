@@ -312,6 +312,83 @@
   - `.env.example` - Reorganized with production deployment notes
   - `README.md` - Added comprehensive deployment documentation
 
+## 2026-07-13: Checkout Modal, Email/Phone Verification & Settings Overhaul
+
+### Session 14: Billing & Settings Refactor
+
+- **Mode**: ACT MODE
+- **Activity**: Refactored billing flow, added email/phone verification in settings, removed phone verification module
+- **Changes**:
+
+  **Backend**:
+  - `backend/prisma/schema.prisma` — Added `emailVerified` to User model. Updated `OtpVerification` model with `target` and `type` fields (supports both email and phone OTP)
+  - `backend/src/otp/otp.service.ts` — Rewritten to support both email and phone OTP verification
+  - `backend/src/otp/otp.controller.ts` — Updated endpoints to accept `target` + `type` parameters
+  - `backend/src/auth/auth.service.ts` — Added `emailVerified` to all auth response objects
+  - `backend/src/users/users.service.ts` — Added `emailVerified` to profile select, added `phone` to updateProfile
+  - `backend/src/users/users.controller.ts` — Added `phone` to updateProfile body
+
+  **Frontend**:
+  - `frontend/src/components/CheckoutModal.tsx` — **New**: Popup with plan summary, auto-renewal toggle, phone number input, and "Proceed to Checkout" button. Opens when user clicks "Buy Now" on a plan card.
+  - `frontend/src/components/SubscriptionCard.tsx` — Simplified: removed internal auto-renewal toggle, removed phone verification logic. Button now says "Buy Now" and opens CheckoutModal.
+  - `frontend/src/app/dashboard/billing/page.tsx` — Refactored: "Buy Now" opens CheckoutModal → modal collects phone + auto-renewal preference → proceeds to Razorpay checkout with phone pre-filled
+  - `frontend/src/app/dashboard/settings/page.tsx` — Added phone number field with Verify button (sends OTP to phone). Added Verify button next to email (sends OTP to email). Shows "Verified" badge when verified.
+  - `frontend/src/stores/auth-store.ts` — Added `emailVerified` to User type
+  - `frontend/src/components/PhoneVerificationModal.tsx` — **Deleted** (replaced by CheckoutModal + inline verification in settings)
+
+- **Files Deleted**:
+  - `frontend/src/components/PhoneVerificationModal.tsx`
+
+## 2026-07-28: Thumbnail Image Generation Fix
+
+### Session 14b: Image Model Response Parsing Fix
+
+- **Mode**: ACT MODE
+- **Activity**: Fixed thumbnail image generation by switching from the non-existent `/api/v1/images/generate` endpoint to the correct `/api/v1/chat/completions` with `output_modalities: ["image"]`
+- **Problem**: All image models returned 404 errors because they were calling the wrong OpenRouter endpoint
+- **Fix**:
+  - Changed endpoint from `/api/v1/images/generate` to `/api/v1/chat/completions`
+  - Added `output_modalities: ["image"]` to request body
+  - Updated response parsing to extract images from `message.images[0].image_url.url`
+  - Removed `openai/gpt-image-1-mini` model which doesn't exist on OpenRouter
+  - Added handling for array-like `images` objects via `Object.values()`
+  - Updated `script.service.ts` image model list
+
+## 2026-07-29: New Pages & Documentation Update
+
+### Session 15: About, Help Center, Contact Pages
+
+- **Mode**: ACT MODE
+- **Activity**: Created public-facing pages, updated landing page footer, and refreshed all markdown documentation with full feature set
+- **Changes**:
+
+  **New Pages Created**:
+  - `frontend/src/app/about/page.tsx` — About page with mission statement, offerings grid, and company story
+  - `frontend/src/app/help/page.tsx` — Help Center with accordion FAQ sections (Getting Started, Credits & Billing, Script Generation, SEO & Thumbnails, Technical)
+  - `frontend/src/app/contact/page.tsx` — Contact page with email support, partnerships, and "Still Need Help?" CTA
+
+  **Landing Page Updates**:
+  - `frontend/src/app/page.tsx` — Footer links updated from placeholder text to real `<Link>` components pointing to `/about`, `/help`, `/contact`. Removed "Blog" references.
+
+  **Sitemap Updated**:
+  - `frontend/src/app/sitemap.ts` — Added `/about`, `/help`, `/contact` entries with appropriate priorities and change frequencies
+
+  **Documentation Updated**:
+  - `README.md` — Complete rewrite with full feature list including: Multi-Model AI, Thumbnail Image Generation, SSE Streaming, BullMQ Queue, Inline Editor, SEO Optimization, Credit System, Razorpay Integration, Email Notifications, OTP Verification, Admin Panel, Admin Promotion, Teams/Workspace, Zustand State Management, Performance optimizations, and all API endpoints
+  - `PLANS.md` — Updated architecture docs with all Post-MVP features, component tree, state management, security architecture, and complete progress checklist
+  - `AGENTS.md` — Added this session entry
+
+- **Files Created**:
+  - `frontend/src/app/about/page.tsx`
+  - `frontend/src/app/help/page.tsx`
+  - `frontend/src/app/contact/page.tsx`
+
+- **Files Modified**:
+  - `frontend/src/app/page.tsx` — Replaced footer placeholder text with real links, removed Blog
+  - `frontend/src/app/sitemap.ts` — Added About, Help, Contact entries
+  - `README.md` — Full rewrite with comprehensive feature list
+  - `PLANS.md` — Updated with all Post-MVP features
+
 ## Project Rules Established
 
 1. Agents restricted to project folder only
@@ -319,3 +396,4 @@
 3. All updates documented in markdown files (AGENTS.md, PLANS.md, README.md)
 4. Full SDLC progress documented
 5. Dependencies are managed via Docker — never run `npm install` or `npm add` directly on the host machine. Instead, use `docker compose build` or `docker compose up` to install dependencies inside containers.
+6. Docker commands (e.g., `docker compose exec`, `docker compose restart`, `docker compose build`) are run by the user in a separate PowerShell window as admin. The agent should not execute Docker commands directly.

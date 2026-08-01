@@ -8,7 +8,6 @@ import { AuthModule } from "./auth/auth.module";
 import { ScriptModule } from "./script/script.module";
 import { AiProviderModule } from "./ai-provider/ai-provider.module";
 import { SeoModule } from "./seo/seo.module";
-import { ThumbnailModule } from "./thumbnail/thumbnail.module";
 import { CreditsModule } from "./credits/credits.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { UsersModule } from "./users/users.module";
@@ -17,6 +16,7 @@ import { SseModule } from "./sse/sse.module";
 import { AdminModule } from "./admin/admin.module";
 import { EmailModule } from "./email/email.module";
 import { HealthModule } from "./health/health.module";
+import { OtpModule } from "./otp/otp.module";
 import { ThrottleTierGuard } from "./common/guards/throttle-tier.guard";
 
 @Module({
@@ -27,6 +27,8 @@ import { ThrottleTierGuard } from "./common/guards/throttle-tier.guard";
         host: process.env.REDIS_HOST || "redis",
         port: parseInt(process.env.REDIS_PORT || "6379"),
         password: process.env.REDIS_PASSWORD || undefined,
+        // Enable TLS for Upstash Redis (production)
+        tls: process.env.REDIS_TLS_ENABLED === "true" ? {} : undefined,
       },
     }),
     ThrottlerModule.forRoot([
@@ -41,7 +43,6 @@ import { ThrottleTierGuard } from "./common/guards/throttle-tier.guard";
     ScriptModule,
     AiProviderModule,
     SeoModule,
-    ThumbnailModule,
     CreditsModule,
     PaymentsModule,
     QueueModule,
@@ -49,6 +50,7 @@ import { ThrottleTierGuard } from "./common/guards/throttle-tier.guard";
     AdminModule,
     EmailModule,
     HealthModule,
+    OtpModule,
   ],
   providers: [
     {

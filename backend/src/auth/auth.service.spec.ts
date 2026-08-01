@@ -49,7 +49,8 @@ describe("AuthService", () => {
         email: "test@example.com",
         name: "Test User",
         role: "user",
-        creditBalance: 5,
+        scriptCredits: 2,
+        thumbnailCredits: 1,
         passwordHash: "hashed-password",
       });
       mockPrisma.creditTransaction.create.mockResolvedValue({});
@@ -57,14 +58,16 @@ describe("AuthService", () => {
       const result = await authService.register("test@example.com", "password123", "Test User");
 
       expect(result.user.email).toBe("test@example.com");
-      expect(result.user.creditBalance).toBe(5);
+      expect(result.user.scriptCredits).toBe(2);
+      expect(result.user.thumbnailCredits).toBe(1);
       expect(result.user.role).toBe("user");
       expect(result.token).toBe("mock-jwt-token");
       expect(mockPrisma.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             email: "test@example.com",
-            creditBalance: 5,
+            scriptCredits: 2,
+            thumbnailCredits: 1,
           }),
         }),
       );
@@ -72,8 +75,8 @@ describe("AuthService", () => {
         expect.objectContaining({
           data: expect.objectContaining({
             type: "purchase",
-            amount: 5,
-            description: "Welcome credits",
+            amount: 3,
+            description: expect.stringContaining("Welcome credits"),
           }),
         }),
       );
@@ -94,7 +97,8 @@ describe("AuthService", () => {
         email: "user@example.com",
         name: "user",
         role: "user",
-        creditBalance: 5,
+        scriptCredits: 2,
+        thumbnailCredits: 1,
         passwordHash: "hashed",
       });
       mockPrisma.creditTransaction.create.mockResolvedValue({});
@@ -117,7 +121,8 @@ describe("AuthService", () => {
         email: "test@example.com",
         name: "Test User",
         role: "user",
-        creditBalance: 10,
+        scriptCredits: 10,
+        thumbnailCredits: 5,
         passwordHash: hashedPassword,
       });
 
@@ -168,7 +173,8 @@ describe("AuthService", () => {
         email: "test@example.com",
         name: "Test User",
         role: "admin",
-        creditBalance: 10,
+        scriptCredits: 10,
+        thumbnailCredits: 5,
       });
 
       const result = await authService.makeAdmin("user-1", "super-secret-admin-key");

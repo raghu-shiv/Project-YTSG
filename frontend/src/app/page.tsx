@@ -23,16 +23,23 @@ export default function Home() {
       {/* Header - always render immediately */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200/60">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group" aria-label="Home">
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 group"
+            aria-label="Home"
+          >
             <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-200 group-hover:shadow-lg group-hover:shadow-indigo-300 transition-shadow">
               <span className="text-white font-bold text-sm">YS</span>
             </div>
             <span className="text-lg font-semibold text-gray-900">
-              YouTube Script<span className="text-indigo-600">Generator</span>
+              YT<span className="text-indigo-600">Scripts</span>
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8" aria-label="Main navigation">
+          <nav
+            className="hidden md:flex items-center gap-8"
+            aria-label="Main navigation"
+          >
             <Link
               href="#features"
               className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
@@ -75,7 +82,7 @@ export default function Home() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
-                  href="/register"
+                  href="/auth"
                   className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300"
                 >
                   Start Creating Free
@@ -120,7 +127,9 @@ export default function Home() {
                     <div className="text-3xl font-bold text-gray-900">
                       {stat.value}
                     </div>
-                    <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      {stat.label}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -180,8 +189,19 @@ export default function Home() {
                     className="group relative p-8 bg-white rounded-2xl border border-gray-200 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-100/50 transition-all duration-300"
                   >
                     <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-5 group-hover:bg-indigo-100 transition-colors">
-                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={feature.icon} />
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d={feature.icon}
+                        />
                       </svg>
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -199,7 +219,10 @@ export default function Home() {
 
         {/* Pricing Section - lazy loaded */}
         <LazySection rootMargin="100px">
-          <section id="pricing" className="py-24 bg-gradient-to-b from-white to-gray-50">
+          <section
+            id="pricing"
+            className="py-24 bg-gradient-to-b from-white to-gray-50"
+          >
             <div className="max-w-7xl mx-auto px-6">
               <div className="text-center mb-16">
                 <h2 className="text-4xl font-bold text-gray-900 mb-4">
@@ -214,32 +237,49 @@ export default function Home() {
                 {[
                   {
                     name: "Starter",
-                    desc: "Perfect for trying out",
-                    price: "₹49",
-                    period: null,
-                    features: ["10 Credits", "₹4.9 per script"],
+                    desc: "10 script + 5 thumbnail credits/mo",
+                    monthlyPrice: "₹299",
+                    annualPrice: "₹2,999/yr",
+                    annualNote: "Save 2 months",
+                    features: [
+                      "10 Script + 5 Thumbnail credits/mo",
+                      "₹19.93/script credit",
+                      "Auto-renewal or one-time",
+                    ],
                     popular: false,
-                    href: "/register",
-                  },
-                  {
-                    name: "Creator",
-                    desc: "Best value for regular creators",
-                    price: "₹199",
-                    period: "/mo",
-                    features: ["50 Credits/month", "₹3.98 per script", "Priority support"],
-                    popular: true,
-                    href: "/register",
+                    href: "/auth",
                   },
                   {
                     name: "Pro",
-                    desc: "For power users",
-                    price: "₹349",
-                    period: "/mo",
-                    features: ["100 Credits/month", "₹3.49 per script", "Priority support"],
-                    popular: false,
-                    href: "/register",
+                    desc: "30 script + 15 thumbnail credits/mo",
+                    monthlyPrice: "₹799",
+                    annualPrice: "₹7,999/yr",
+                    annualNote: "Save 2 months",
+                    features: [
+                      "30 Script + 15 Thumbnail credits/mo",
+                      "₹17.76/script credit",
+                      "Auto-renewal or one-time",
+                      "Priority support",
+                    ],
+                    popular: true,
+                    href: "/auth",
                   },
-                ].map((plan) => (
+                  {
+                    name: "Premium",
+                    desc: "50 script + 20 thumbnail credits/mo",
+                    monthlyPrice: "₹1,199",
+                    annualPrice: "₹11,999/yr",
+                    annualNote: "Save 2 months",
+                    features: [
+                      "50 Script + 20 Thumbnail credits/mo",
+                      "₹17.13/script credit",
+                      "Auto-renewal or one-time",
+                      "Priority support",
+                    ],
+                    popular: false,
+                    href: "/auth",
+                  },
+                ].map((plan: any) => (
                   <div
                     key={plan.name}
                     className={`relative p-8 bg-white rounded-2xl border ${
@@ -255,17 +295,38 @@ export default function Home() {
                         </span>
                       </div>
                     )}
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{plan.name}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {plan.name}
+                    </h3>
                     <p className="text-sm text-gray-500 mb-6">{plan.desc}</p>
-                    <div className="mb-6">
-                      <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                      {plan.period && <span className="text-gray-500 ml-1">{plan.period}</span>}
+                    <div className="mb-2">
+                      <span className="text-4xl font-bold text-gray-900">
+                        {plan.monthlyPrice}
+                      </span>
+                      <span className="text-gray-500 ml-1">/mo</span>
                     </div>
+                    <p className="text-sm text-emerald-600 font-medium mb-6">
+                      {plan.annualPrice} — {plan.annualNote}
+                    </p>
                     <ul className="space-y-3 mb-8">
-                      {plan.features.map((feat) => (
-                        <li key={feat} className="flex items-center gap-2 text-sm text-gray-600">
-                          <svg className="w-5 h-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      {plan.features.map((feat: string) => (
+                        <li
+                          key={feat}
+                          className="flex items-center gap-2 text-sm text-gray-600"
+                        >
+                          <svg
+                            className="w-5 h-5 text-emerald-500 flex-shrink-0"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
                           </svg>
                           {feat}
                         </li>
@@ -297,15 +358,27 @@ export default function Home() {
                   Ready to Create Your First Script?
                 </h2>
                 <p className="text-indigo-100 text-lg mb-8 max-w-lg mx-auto">
-                  Get 5 free credits when you sign up. No credit card required.
+                  Get 2 free script + 1 free thumbnail credits when you sign up.
+                  No credit card required.
                 </p>
                 <Link
-                  href="/register"
+                  href="/auth"
                   className="inline-flex items-center px-8 py-4 text-base font-semibold text-indigo-700 bg-white rounded-2xl hover:bg-indigo-50 transition-all duration-200 shadow-lg"
                 >
                   Create Free Account
-                  <svg className="ml-2 w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  <svg
+                    className="ml-2 w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
                   </svg>
                 </Link>
               </div>
@@ -324,34 +397,87 @@ export default function Home() {
                   <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold text-xs">YS</span>
                   </div>
-                  <span className="font-semibold text-gray-900">YouTube Script Generator</span>
+                  <span className="font-semibold text-gray-900">
+                    YT Scripts
+                  </span>
                 </div>
-                <p className="text-sm text-gray-500">AI-powered script generation for YouTube creators.</p>
+                <p className="text-sm text-gray-500">
+                  AI-powered script generation for YouTube creators.
+                </p>
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900 mb-4 text-sm">Product</h4>
+                <h4 className="font-semibold text-gray-900 mb-4 text-sm">
+                  Product
+                </h4>
                 <ul className="space-y-2">
-                  <li><a href="#features" className="text-sm text-gray-500 hover:text-gray-700">Features</a></li>
-                  <li><a href="#pricing" className="text-sm text-gray-500 hover:text-gray-700">Pricing</a></li>
+                  <li>
+                    <a
+                      href="#features"
+                      className="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      Features
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#pricing"
+                      className="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      Pricing
+                    </a>
+                  </li>
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900 mb-4 text-sm">Company</h4>
+                <h4 className="font-semibold text-gray-900 mb-4 text-sm">
+                  Company
+                </h4>
                 <ul className="space-y-2">
-                  <li><span className="text-sm text-gray-500">About</span></li>
-                  <li><span className="text-sm text-gray-500">Blog</span></li>
+                  <li>
+                    <Link
+                      href="/about"
+                      className="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      About
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/contact"
+                      className="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      Contact
+                    </Link>
+                  </li>
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900 mb-4 text-sm">Support</h4>
+                <h4 className="font-semibold text-gray-900 mb-4 text-sm">
+                  Support
+                </h4>
                 <ul className="space-y-2">
-                  <li><span className="text-sm text-gray-500">Help Center</span></li>
-                  <li><span className="text-sm text-gray-500">Contact</span></li>
+                  <li>
+                    <Link
+                      href="/help"
+                      className="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      Help Center
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/contact"
+                      className="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      Contact
+                    </Link>
+                  </li>
                 </ul>
               </div>
             </div>
             <div className="border-t border-gray-200 pt-8 text-center text-sm text-gray-400">
-              YouTube Script Generator &copy; {new Date().getFullYear()}. All rights reserved.
+              Roxxon Infotech Pvt. Ltd. &copy; {new Date().getFullYear()}. All
+              rights reserved.
             </div>
           </div>
         </footer>

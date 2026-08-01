@@ -49,6 +49,11 @@ export class ScriptController {
     return this.scriptService.regenerate(id, req.user.id);
   }
 
+  @Post(":id/generate-thumbnails")
+  generateThumbnails(@Req() req: any, @Param("id") id: string) {
+    return this.scriptService.generateThumbnails(id, req.user.id);
+  }
+
   @Delete(":id")
   delete(@Req() req: any, @Param("id") id: string) {
     return this.scriptService.delete(id, req.user.id);

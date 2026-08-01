@@ -1,7 +1,7 @@
 {
   "name": "ysg-backend",
   "version": "1.0.0",
-  "description": "YouTube Script Generator - Backend API",
+  "description": "YT Scripts - Backend API",
   "private": true,
   "scripts": {
     "build": "nest build",

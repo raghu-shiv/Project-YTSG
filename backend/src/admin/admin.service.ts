@@ -38,7 +38,8 @@ export class AdminService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new Error("User not found");
 
-    const newBalance = user.creditBalance + amount;
+    // For admin adjustments, add to script credits by default
+    const newBalance = user.scriptCredits + amount;
 
     await this.prisma.creditTransaction.create({
       data: {
@@ -52,7 +53,7 @@ export class AdminService {
 
     return this.prisma.user.update({
       where: { id: userId },
-      data: { creditBalance: newBalance },
+      data: { scriptCredits: newBalance },
     });
   }
 

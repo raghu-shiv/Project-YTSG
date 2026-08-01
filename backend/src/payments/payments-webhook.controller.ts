@@ -43,22 +43,22 @@ export class PaymentsWebhookController {
         const user = await this.prisma.user.findUnique({
           where: { id: existingPayment.userId },
         });
-        const newBalance =
-          (user?.creditBalance || 0) + existingPayment.creditsPurchased;
+
+        const newScriptCredits = (user?.scriptCredits || 0) + existingPayment.creditsPurchased;
 
         await this.prisma.creditTransaction.create({
           data: {
             userId: existingPayment.userId,
             amount: existingPayment.creditsPurchased,
             type: "purchase",
-            balanceAfter: newBalance,
+            balanceAfter: newScriptCredits,
             description: `Purchased ${existingPayment.creditsPurchased} credits`,
           },
         });
 
         await this.prisma.user.update({
           where: { id: existingPayment.userId },
-          data: { creditBalance: newBalance },
+          data: { scriptCredits: newScriptCredits },
         });
       }
     }
@@ -70,25 +70,29 @@ export class PaymentsWebhookController {
       });
 
       if (existingSub) {
-        const credits = existingSub.creditsPerMonth;
         const user = await this.prisma.user.findUnique({
           where: { id: existingSub.userId },
         });
-        const newBalance = (user?.creditBalance || 0) + credits;
+
+        const newScriptCredits = (user?.scriptCredits || 0) + existingSub.scriptCredits;
+        const newThumbnailCredits = (user?.thumbnailCredits || 0) + existingSub.thumbnailCredits;
 
         await this.prisma.creditTransaction.create({
           data: {
             userId: existingSub.userId,
-            amount: credits,
+            amount: existingSub.scriptCredits + existingSub.thumbnailCredits,
             type: "subscription_grant",
-            balanceAfter: newBalance,
-            description: `Monthly subscription grant: ${credits} credits`,
+            balanceAfter: newScriptCredits + newThumbnailCredits,
+            description: `Monthly subscription grant: ${existingSub.scriptCredits} script + ${existingSub.thumbnailCredits} thumbnail credits`,
           },
         });
 
         await this.prisma.user.update({
           where: { id: existingSub.userId },
-          data: { creditBalance: newBalance },
+          data: {
+            scriptCredits: newScriptCredits,
+            thumbnailCredits: newThumbnailCredits,
+          },
         });
 
         await this.prisma.subscription.update({

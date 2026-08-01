@@ -73,9 +73,9 @@ export const useScriptsStore = create<ScriptsState>()((set) => ({
     set({ isGenerating: true, generationProgress: null, error: null });
 
     try {
-      const result = await apiClient("/scripts/generate", {
+      const result = await apiClient("/scripts", {
         method: "POST",
-        body: { topic, videoType, niche },
+        body: { topic, videoType, nicheId: niche },
       });
 
       if (result.script) {

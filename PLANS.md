@@ -11,18 +11,18 @@
 │  Next.js Frontend │ ───────────────────▶ │   NestJS API (REST)  │
 │  (Vercel)          │ ◀─────────────────  │   (Railway/Render)    │
 └─────────────────┘                        └──────────┬────────────┘
-                                                          │
-                       ┌──────────────────────────────────┼───────────────────────┐
-                       ▼                                  ▼                       ▼
-               ┌───────────────┐                 ┌────────────────┐      ┌────────────────┐
-               │ PostgreSQL    │                 │ Redis (Upstash) │      │ OpenRouter API │
-               │ (Neon/Supabase)│                │ cache + queue   │      │ (LLM calls)     │
-               └───────────────┘                 └────────────────┘      └────────────────┘
-                       │
-                       ▼
-               ┌───────────────┐
-               │ Razorpay       │  (Webhooks → credit ledger update)
-               └───────────────┘
+                                                           │
+                        ┌──────────────────────────────────┼───────────────────────┐
+                        ▼                                  ▼                       ▼
+                ┌───────────────┐                 ┌────────────────┐      ┌────────────────┐
+                │ PostgreSQL    │                 │ Redis (Upstash) │      │ OpenRouter API │
+                │ (Neon/Supabase)│                │ cache + queue   │      │ (LLM calls)     │
+                └───────────────┘                 └────────────────┘      └────────────────┘
+                        │
+                        ▼
+                ┌───────────────┐
+                │ Razorpay       │  (Webhooks → credit ledger update)
+                └───────────────┘
 ```
 
 ### Key Design Decisions
@@ -48,6 +48,7 @@ User (1) ──── (N) Payment
 User (1) ──── (N) Subscription
 User (1) ──── (N) AiUsageLog
 User (1) ──── (N) TeamMember
+User (1) ──── (N) OtpVerification
 Script (1) ──── (N) ScriptVersion
 Script (1) ──── (1) SeoSuggestion
 Script (1) ──── (N) ThumbnailConcept
@@ -60,7 +61,7 @@ Team (1) ──── (N) TeamInvite
 
 ### Models (13 total)
 
-1. **User** - Core user account with credit balance
+1. **User** - Core user account with credit balance, emailVerified, phone
 2. **CreditTransaction** - Immutable ledger of all credit movements
 3. **Subscription** - Monthly bundle subscriptions
 4. **Payment** - Razorpay payment records
@@ -68,11 +69,12 @@ Team (1) ──── (N) TeamInvite
 6. **Script** - Generated scripts with status tracking (optionally team-scoped)
 7. **ScriptVersion** - Version history on regeneration
 8. **SeoSuggestion** - SEO metadata per script
-9. **ThumbnailConcept** - Thumbnail ideas per script
+9. **ThumbnailConcept** - Thumbnail ideas per script (with actual imageUrl)
 10. **AiUsageLog** - Token/cost tracking for observability
 11. **Team** - Workspace/team with slug, name, description
 12. **TeamMember** - User membership with role (owner/admin/member)
 13. **TeamInvite** - Email invite with token, expiry, acceptance
+14. **OtpVerification** - OTP codes for email and phone verification
 
 ### Key Schema Decisions
 
@@ -83,6 +85,7 @@ Team (1) ──── (N) TeamInvite
 - **Snake_case column mapping** via `@map()` for PostgreSQL conventions
 - **Team/Workspace** uses a separate Team model with many-to-many via TeamMember
 - **Team scoping** on Script and Niche via optional foreign keys
+- **OtpVerification** supports both email and phone OTP via `target` and `type` fields
 
 ## 3. API Design
 
@@ -112,6 +115,7 @@ User Action                    Credit Impact
 ─────────────────────────────────────────────
 Sign up                       +5 (welcome bonus)
 Generate script               -1 (deducted upfront, refunded on failure)
+Generate thumbnail            -1 (deducted on success, no charge on failure)
 Purchase credits              +N (after Razorpay verification)
 Monthly subscription grant    +N (per period)
 ```
@@ -137,7 +141,23 @@ Monthly subscription grant    +N (per period)
 3. If error, log warning and try next model in priority chain:
    GPT-4o-mini → Gemini Flash → DeepSeek → Llama 3.1 → GPT-4o → Claude 3.5
 4. If all models fail, throw error with last error message
-5. Same pattern for image generation: DALL-E 3 → Stable Diffusion XL → Flux Schnell
+5. Image generation uses /chat/completions with output_modalities: ["image"]
+   gemini-3.1-flash-lite-image → gemini-3.1-flash-image → seedream-4.5
+```
+
+### Thumbnail Image Generation Flow
+
+```
+1. POST /api/scripts/:id/thumbnail
+2. Check thumbnail credits → deduct 1 credit
+3. Generate text concept via generateThumbnailConcepts() (text model)
+4. Build image prompt from concept description + keywords
+5. Try image models in order:
+   gemini-3.1-flash-lite-image → gemini-3.1-flash-image → seedream-4.5
+6. Each model called via POST /api/v1/chat/completions with output_modalities: ["image"]
+7. Response parsed from message.images[0].image_url.url (data:image/jpeg;base64,...)
+8. On success: save imageUrl to ThumbnailConcept, deduct credit
+9. On failure: try next model; if all fail, save concept without image, no credit charged
 ```
 
 ## 4. Frontend Architecture
@@ -147,8 +167,10 @@ Monthly subscription grant    +N (per period)
 ```
 RootLayout
 ├── Landing Page (/)
-├── Login Page (/login)
-├── Register Page (/register)
+├── About Page (/about)
+├── Help Center (/help)
+├── Contact Page (/contact)
+├── Login/Register (/auth)
 ├── Admin Panel (/admin) — Standalone page, not in dashboard sidebar
 │   └── Only accessible to admin users; non-admin redirected to /dashboard
 └── DashboardLayout (authenticated)
@@ -158,14 +180,17 @@ RootLayout
     │       ├── Script Tab (inline editor with auto-save)
     │       ├── SEO Tab
     │       └── Thumbnail Tab
-    ├── Billing (/dashboard/billing) — Credit purchase
-    └── Settings (/dashboard/settings) — Profile
+    ├── Billing (/dashboard/billing) — Credit purchase with CheckoutModal
+    └── Settings (/dashboard/settings) — Profile with email/phone verification
 
 ### Shared Components
 ├── UI (Button, Input, Card, Badge, LoadingSpinner)
 ├── AuthNav — Auth-aware nav bar
-├── InlineEditor — Rich text editor with auto-save
-└── LazySection — IntersectionObserver-based lazy loading wrapper for below-fold content
+├── CheckoutModal — Razorpay checkout with plan summary, phone, auto-renewal toggle
+├── InlineEditor — Rich text editor with auto-save and .txt/.docx download
+├── LazySection — IntersectionObserver-based lazy loading wrapper for below-fold content
+├── Providers — Theme/auth providers
+└── SubscriptionCard — Plan display card
 ```
 
 ### State Management (Zustand)
@@ -203,6 +228,7 @@ RootLayout
 | Area               | Strategy                                                                  |
 | ------------------ | ------------------------------------------------------------------------- |
 | **AI Model**       | Default to `gpt-4o-mini` ($0.15/1K input tokens) — cheapest capable model |
+| **Image Model**    | Default to `gemini-3.1-flash-lite-image` ($0.00003/token) — cheapest image model |
 | **Model Fallback** | Route complex tasks to stronger models, simple tasks to cheap models      |
 | **Caching**        | Redis cache for frequently accessed data (pricing, niches)                |
 | **Database**       | Serverless Postgres (Neon) — scale-to-zero when idle                      |
@@ -230,17 +256,22 @@ RootLayout
 - [x] SSE streaming for real-time script generation
 - [x] Inline script editing with auto-save (debounced)
 - [x] Download as .txt/.docx
-- [x] Admin panel (user management, credit adjustments)
-- [x] Email notifications (welcome, credit low)
+- [x] Admin panel (user management, credit adjustments) — standalone `/admin` route
+- [x] Admin promotion via `POST /auth/make-admin` with `ADMIN_SECRET_KEY` env var
+- [x] Email notifications (welcome, credit low, generation complete)
 - [x] Subscription auto-renewal via Razorpay webhooks
 - [x] API rate limiting per user tier
-- [x] Zustand global state management (4 stores)
+- [x] Zustand global state management (4 stores: auth, ui, scripts, credits)
 - [x] Multi-model AI support with automatic fallback (6 models)
-- [x] Thumbnail image generation (DALL-E 3 / Stable Diffusion / Flux)
+- [x] Thumbnail image generation (via /chat/completions with output_modalities: ["image"])
 - [x] Team/workspace accounts (Team, TeamMember, TeamInvite models)
-- [x] Admin panel relocated to standalone `/admin` route (not in dashboard sidebar)
-- [x] Admin promotion via `POST /auth/make-admin` with `ADMIN_SECRET_KEY` env var
 - [x] Comprehensive SEO metadata (Open Graph, Twitter Cards, JSON-LD, sitemap, robots.txt)
 - [x] Lazy loading for below-fold content (LazySection component)
 - [x] Performance optimization (font preloading, DNS prefetch, asset caching, compression)
 - [x] Backend SEO module with AI-powered suggestions, scoring, and fallback
+- [x] OTP verification for email and phone
+- [x] CheckoutModal with plan summary, phone input, auto-renewal toggle
+- [x] Email/phone verification in settings page
+- [x] About, Help Center, Contact pages
+- [x] Health check endpoint
+- [x] Production Dockerfile + deployment configs (vercel.json, render.yaml)

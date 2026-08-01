@@ -80,13 +80,13 @@ export function AuthNav() {
   return (
     <div className="flex items-center gap-3">
       <Link
-        href="/login"
+        href="/auth"
         className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors px-4 py-2"
       >
         Login
       </Link>
       <Link
-        href="/register"
+        href="/auth"
         className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all duration-200 shadow-sm shadow-indigo-200 hover:shadow-md hover:shadow-indigo-300"
       >
         Get Started Free
