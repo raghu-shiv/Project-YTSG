@@ -21,15 +21,18 @@ export class PrismaService
         { emit: "stdout", level: "warn" },
         { emit: "stdout", level: "error" },
       ],
-      // Prevent hanging on connection — timeout after 15 seconds
-      // Required for Supabase PgBouncer on port 6543
-      connectionTimeoutMillis: 15000,
     });
   }
 
   async onModuleInit() {
     try {
-      await this.$connect();
+      // Use a timeout promise to prevent hanging on Supabase PgBouncer
+      await Promise.race([
+        this.$connect(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Database connection timed out after 15s")), 15000),
+        ),
+      ]);
       this.logger.log("Connected to PostgreSQL database");
     } catch (error) {
       this.logger.error("Failed to connect to database:");
