@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 echo "=== Starting Backend ==="
 
@@ -13,8 +14,13 @@ echo "✓ Prisma migrations applied"
 # Check if we're in production (dist folder exists) or development
 if [ -d "./dist" ]; then
   echo "✓ Starting app with compiled JS (production)..."
-  exec node dist/main.js
+  echo "   Port: ${PORT:-4000}"
+  echo "   Node: $(node --version)"
+  node dist/main.js 2>&1
+  EXIT_CODE=$?
+  echo "✗ App exited with code $EXIT_CODE"
+  exit $EXIT_CODE
 else
   echo "✓ Starting app with ts-node (development)..."
-  exec npx ts-node -r tsconfig-paths/register src/main.ts
+  npx ts-node -r tsconfig-paths/register src/main.ts 2>&1
 fi
