@@ -9,10 +9,8 @@ RUN apk add --no-cache python3 make g++ openssl
 # Copy package files
 COPY package.json tsconfig.json nest-cli.json ./
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
-RUN cp -R node_modules /tmp/node_modules_prod
-RUN npm ci
+# Install ALL dependencies (dev + prod) for building
+RUN npm install && npm cache clean --force
 
 # Copy source code
 COPY prisma ./prisma
@@ -32,9 +30,11 @@ WORKDIR /app
 # Install runtime dependencies
 RUN apk add --no-cache openssl
 
-# Copy production dependencies
-COPY --from=builder /tmp/node_modules_prod ./node_modules
-COPY --from=builder /app/package.json ./package.json
+# Copy production dependencies only (reinstall without dev deps)
+COPY package.json ./
+RUN npm install --omit=dev && npm cache clean --force
+
+# Copy built artifacts
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 

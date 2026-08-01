@@ -120,19 +120,30 @@ YouTubeScriptGenerator/
                        │ HTTPS
                        ▼
 ┌──────────────────────────────────────────────────┐
-│  Render (Backend API + Database + Redis)          │
+│  Render (Backend API)                            │
 │  https://ysg-backend.onrender.com                 │
 │                                                    │
 │  - NestJS API (Docker container)                  │
-│  - PostgreSQL managed database                    │
-│  - Redis managed cache + BullMQ queue             │
 │  - Automatic SSL, health checks, auto-deploy     │
-└──────────────────────────────────────────────────┘
+└──────────────────────┬──────────────────────────┘
+                       │
+          ┌────────────┴────────────┐
+          ▼                         ▼
+┌──────────────────┐   ┌──────────────────────┐
+│  Supabase         │   │  Upstash Redis       │
+│  (PostgreSQL)     │   │  (Cache + Queue)     │
+│                    │   │                      │
+│  - Free tier       │   │  - Free tier (30MB)  │
+│  - PgBouncer pool  │   │  - TLS required      │
+│  - 500MB storage   │   │  - Global replication│
+└──────────────────┘   └──────────────────────┘
 ```
 
 ### Prerequisites
 
 - GitHub account (connected to Vercel & Render)
+- Supabase account (free tier) — [supabase.com](https://supabase.com)
+- Upstash account (free tier) — [upstash.com](https://upstash.com)
 - OpenRouter API key
 - Razorpay account (for payments)
 - (Optional) Google OAuth credentials
@@ -147,71 +158,65 @@ YouTubeScriptGenerator/
    - `backend/startup.sh` — Production startup script with auto-migration
    - `backend/src/health/` — Health check endpoint at `/api/health`
 
-### Step 2: Deploy Backend to Render
+### Step 2: Create Supabase PostgreSQL Database
 
-#### Option A: Blueprint (Recommended — uses render.yaml)
+1. Go to [supabase.com](https://supabase.com) → **Start a new project**
+2. Name your project (e.g., `ytsg-db`) and set a strong database password
+3. Wait for the database to provision (~2 minutes)
+4. Navigate to **Project Settings → Database → Connection string**
+5. Copy the **PgBouncer** connection string (port **6543**, not 5432):
+   ```
+   postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true&schema=public
+   ```
+6. **Important**: The URL must include `?pgbouncer=true&schema=public` for Prisma compatibility
 
-1. Log in to [Render Dashboard](https://dashboard.render.com)
-2. Click **New → Blueprint**
-3. Connect your GitHub repo
-4. Render will automatically detect `render.yaml` and create:
-   - **Web Service**: `ysg-backend` (Docker image)
-   - **PostgreSQL**: `ysg-postgres` (free tier)
-   - **Redis**: `ysg-redis` (free tier)
-5. After creation, add the following **manual environment variables** in the Web Service dashboard:
-   - `OPENROUTER_API_KEY` — Your OpenRouter key
-   - `RAZORPAY_KEY_ID` — Your Razorpay key ID
-   - `RAZORPAY_KEY_SECRET` — Your Razorpay secret
-   - `RAZORPAY_WEBHOOK_SECRET` — Your Razorpay webhook secret
-   - `ADMIN_SECRET_KEY` — A strong random secret for admin promotion
-   - `RESEND_API_KEY` — (Optional) For email notifications
+### Step 3: Create Upstash Redis Database
 
-#### Option B: Manual Setup
+1. Go to [upstash.com](https://upstash.com) → **Create Database**
+2. Choose **Global** or a specific region close to your Render deployment
+3. Once created, go to the database details → **REST API** section
+4. Copy the following:
+   - **UPSTASH_REDIS_REST_URL** — Extract the hostname (e.g., `us1-adequate-lion-12345.upstash.io`)
+   - **UPSTASH_REDIS_REST_TOKEN** — This is your `REDIS_PASSWORD`
+5. Set `REDIS_TLS_ENABLED=true` (Upstash requires TLS)
 
-1. **Create PostgreSQL Database**:
-   - Go to **New → PostgreSQL**
-   - Name: `ysg-postgres`
-   - Database: `ysg_db`, User: `ysg_user`
-   - Plan: Free
-   - Note the **Internal Connection String**
+### Step 4: Deploy Backend to Render
 
-2. **Create Redis Instance**:
-   - Go to **New → Redis**
-   - Name: `ysg-redis`
-   - Plan: Free
-   - Note the **Connection Details** (host, port, password)
+1. Go to [Render Dashboard](https://dashboard.render.com) → **New → Web Service**
+2. Connect your GitHub repository
+3. Configure the service:
 
-3. **Create Web Service**:
-   - Go to **New → Web Service**
-   - Connect your GitHub repo
-   - **Name**: `ysg-backend`
-   - **Runtime**: Docker
-   - **Dockerfile Path**: `./backend/Dockerfile`
-   - **Docker Context**: `./backend`
-   - **Plan**: Free
-   - **Health Check Path**: `/api/health`
-   - **Auto-Deploy**: Yes
+   | Setting | Value |
+   |---------|-------|
+   | **Name** | `ysg-backend` |
+   | **Runtime** | Docker |
+   | **Dockerfile Path** | `./backend/Dockerfile` |
+   | **Docker Context** | `./backend` |
+   | **Plan** | Free |
+   | **Health Check Path** | `/api/health` |
+   | **Auto-Deploy** | Yes |
 
-   - Add environment variables:
+4. **Environment Variables** (set these manually):
 
-     | Variable | Value |
-     |----------|-------|
-     | `NODE_ENV` | `production` |
-     | `PORT` | `4000` |
-     | `DATABASE_URL` | (from PostgreSQL) |
-     | `REDIS_HOST` | (from Redis) |
-     | `REDIS_PORT` | (from Redis) |
-     | `REDIS_PASSWORD` | (from Redis) |
-     | `JWT_SECRET` | `openssl rand -base64 32` (generate) |
-     | `OPENROUTER_API_KEY` | Your OpenRouter key |
-     | `FRONTEND_URL` | `https://youtube-script-generator.vercel.app` |
-     | `RAZORPAY_KEY_ID` | Your Razorpay key |
-     | `RAZORPAY_KEY_SECRET` | Your Razorpay secret |
-     | `RAZORPAY_WEBHOOK_SECRET` | Your webhook secret |
-     | `ADMIN_SECRET_KEY` | A strong random secret |
-     | `RESEND_API_KEY` | (Optional) Resend API key |
+   | Variable | Value |
+   |----------|-------|
+   | `NODE_ENV` | `production` |
+   | `PORT` | `4000` |
+   | `DATABASE_URL` | Your Supabase PgBouncer connection string (from Step 2) |
+   | `REDIS_HOST` | Your Upstash hostname (from Step 3) |
+   | `REDIS_PORT` | `6379` |
+   | `REDIS_PASSWORD` | Your Upstash REST token (from Step 3) |
+   | `REDIS_TLS_ENABLED` | `true` |
+   | `JWT_SECRET` | `openssl rand -base64 32` (generate a strong secret) |
+   | `OPENROUTER_API_KEY` | Your OpenRouter key |
+   | `FRONTEND_URL` | `https://youtube-script-generator.vercel.app` |
+   | `RAZORPAY_KEY_ID` | Your Razorpay key ID |
+   | `RAZORPAY_KEY_SECRET` | Your Razorpay secret |
+   | `RAZORPAY_WEBHOOK_SECRET` | Your Razorpay webhook secret |
+   | `ADMIN_SECRET_KEY` | A strong random secret for admin promotion |
+   | `RESEND_API_KEY` | (Optional) Resend API key for email |
 
-4. Once deployed, note your backend URL: `https://ysg-backend.onrender.com`
+5. Once deployed, note your backend URL: `https://ysg-backend.onrender.com`
 
 ### Step 3: Deploy Frontend to Vercel
 
