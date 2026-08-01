@@ -21,6 +21,12 @@ export class PrismaService
         { emit: "stdout", level: "warn" },
         { emit: "stdout", level: "error" },
       ],
+      // Render free tier has 512MB RAM — limit connections to avoid OOM
+      // 9 connections × ~50MB each = 450MB + Node ~100MB = 550MB+ (exceeds 512MB)
+      // 2 connections × ~50MB = 100MB + Node ~100MB = 200MB ✓
+      datasourceUrl: process.env.DATABASE_URL?.includes("?")
+        ? process.env.DATABASE_URL + "&connection_limit=2"
+        : process.env.DATABASE_URL + "?connection_limit=2",
     });
   }
 
