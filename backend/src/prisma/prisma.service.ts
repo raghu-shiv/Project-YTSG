@@ -21,12 +21,21 @@ export class PrismaService
         { emit: "stdout", level: "warn" },
         { emit: "stdout", level: "error" },
       ],
+      // Prevent hanging on connection — timeout after 15 seconds
+      // Required for Supabase PgBouncer on port 6543
+      connectionTimeoutMillis: 15000,
     });
   }
 
   async onModuleInit() {
-    await this.$connect();
-    this.logger.log("Connected to PostgreSQL database");
+    try {
+      await this.$connect();
+      this.logger.log("Connected to PostgreSQL database");
+    } catch (error) {
+      this.logger.error("Failed to connect to database:");
+      this.logger.error(error instanceof Error ? error.message : error);
+      // Don't crash the app — allow retry
+    }
   }
 
   async onModuleDestroy() {

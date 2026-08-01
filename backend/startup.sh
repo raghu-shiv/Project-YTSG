@@ -2,13 +2,9 @@
 echo "=== Starting Backend ==="
 echo "PORT=${PORT:-not set}"
 
-# Generate Prisma client (non-fatal if it fails)
-npx prisma generate 2>&1 || echo "⚠️ Prisma generate had issues"
+# Generate Prisma client
+npx prisma generate 2>&1
 echo "✓ Prisma client generated"
-
-# Run Prisma migrations (non-fatal — schema may already be compatible)
-npx prisma db push --accept-data-loss 2>&1 || echo "⚠️ Prisma push had issues (non-fatal)"
-echo "✓ Prisma migrations applied"
 
 # Start the application
 echo "✓ Starting app..."
@@ -21,7 +17,7 @@ if [ -d "./dist" ]; then
   echo "✗ App exited with code $EXIT_CODE"
   exit $EXIT_CODE
 else
-  echo "✗ ERROR: dist directory not found! Build may have failed."
+  echo "✗ ERROR: dist directory not found!"
   ls -la /app/ 2>&1
   exit 1
 fi
