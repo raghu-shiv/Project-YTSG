@@ -1,25 +1,20 @@
-import { Injectable } from "@nestjs/common";
-import { InjectQueue } from "@nestjs/bullmq";
-import { Queue } from "bullmq";
+import { Injectable, Logger } from "@nestjs/common";
 
 @Injectable()
 export class ScriptGenerationService {
-  constructor(
-    @InjectQueue("script-generation") private readonly queue: Queue,
-  ) {}
+  private readonly logger = new Logger(ScriptGenerationService.name);
 
+  /**
+   * For MVP, scripts are generated synchronously in ScriptService.
+   * This service is a placeholder for future BullMQ queue integration.
+   */
   async enqueue(
-    scriptId: string,
-    topic: string,
-    videoType: string,
-    userId: string,
+    _scriptId: string,
+    _topic: string,
+    _videoType: string,
+    _userId: string,
   ) {
-    const job = await this.queue.add("generate", {
-      scriptId,
-      topic,
-      videoType,
-      userId,
-    });
-    return job.id;
+    this.logger.warn("BullMQ queue not available — scripts generate synchronously");
+    return null;
   }
 }

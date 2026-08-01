@@ -30,6 +30,7 @@ enum CreditTransactionType {
 enum SubscriptionPlan {
     free
     starter
+    creator
     pro
     premium
 }

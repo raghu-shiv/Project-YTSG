@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
-import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
-import { BullModule } from "@nestjs/bullmq";
 import { ScheduleModule } from "@nestjs/schedule";
 import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
@@ -22,33 +21,6 @@ import { ThrottleTierGuard } from "./common/guards/throttle-tier.guard";
 @Module({
   imports: [
     ScheduleModule.forRoot(),
-    BullModule.forRoot({
-      connection: {
-        host: process.env.REDIS_HOST || "redis",
-        port: parseInt(process.env.REDIS_PORT || "6379"),
-        password: process.env.REDIS_PASSWORD || undefined,
-        // Enable TLS for Upstash Redis (production)
-        tls: process.env.REDIS_TLS_ENABLED === "true" ? {} : undefined,
-        // Don't block app startup if Redis is unreachable
-        enableReadyCheck: false,
-        maxRetriesPerRequest: null,
-        retryStrategy: (times: number) => {
-          // Retry every 5 seconds, max 10 retries
-          if (times > 10) return null;
-          return Math.min(times * 200, 5000);
-        },
-        // Short initial connect timeout so app doesn't hang
-        connectTimeout: 10000,
-        lazyConnect: true,
-      },
-      // Don't crash if Redis is unavailable — queues will retry
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: { type: "exponential", delay: 2000 },
-        removeOnComplete: { age: 3600 },
-        removeOnFail: { age: 86400 },
-      },
-    }),
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
