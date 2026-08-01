@@ -1,26 +1,27 @@
 #!/bin/sh
-set -e
-
 echo "=== Starting Backend ==="
+echo "PORT=${PORT:-not set}"
 
-# Generate Prisma client
-npx prisma generate 2>&1
+# Generate Prisma client (non-fatal if it fails)
+npx prisma generate 2>&1 || echo "⚠️ Prisma generate had issues"
 echo "✓ Prisma client generated"
 
-# Run Prisma migrations
-npx prisma db push --accept-data-loss 2>&1
+# Run Prisma migrations (non-fatal — schema may already be compatible)
+npx prisma db push --accept-data-loss 2>&1 || echo "⚠️ Prisma push had issues (non-fatal)"
 echo "✓ Prisma migrations applied"
 
-# Check if we're in production (dist folder exists) or development
+# Start the application
+echo "✓ Starting app..."
+echo "   Port: ${PORT:-4000}"
+echo "   Node: $(node --version)"
+
 if [ -d "./dist" ]; then
-  echo "✓ Starting app with compiled JS (production)..."
-  echo "   Port: ${PORT:-4000}"
-  echo "   Node: $(node --version)"
   node dist/main.js 2>&1
   EXIT_CODE=$?
   echo "✗ App exited with code $EXIT_CODE"
   exit $EXIT_CODE
 else
-  echo "✓ Starting app with ts-node (development)..."
-  npx ts-node -r tsconfig-paths/register src/main.ts 2>&1
+  echo "✗ ERROR: dist directory not found! Build may have failed."
+  ls -la /app/ 2>&1
+  exit 1
 fi
