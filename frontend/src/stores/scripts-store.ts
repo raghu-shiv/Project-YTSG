@@ -8,6 +8,7 @@ type Script = {
   videoType: string;
   content?: string;
   outline?: any;
+  seoSuggestions?: any;
   status: string;
   wordCount?: number;
   modelUsed?: string;
