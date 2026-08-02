@@ -10,6 +10,7 @@ type User = {
   phoneVerified?: boolean;
   emailVerified?: boolean;
   role?: string;
+  creditBalance?: number;
   scriptCredits?: number;
   thumbnailCredits?: number;
 };
