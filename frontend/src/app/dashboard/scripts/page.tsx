@@ -25,7 +25,7 @@ export default function ScriptsPage() {
       case "generating":
         return <Badge variant="warning">Generating...</Badge>;
       case "failed":
-        return <Badge variant="error">Failed</Badge>;
+        return <Badge variant="danger">Failed</Badge>;
       default:
         return <Badge variant="default">{status}</Badge>;
     }
