@@ -7,6 +7,7 @@ type Script = {
   topic: string;
   videoType: string;
   content?: string;
+  outline?: any;
   status: string;
   wordCount?: number;
   modelUsed?: string;
