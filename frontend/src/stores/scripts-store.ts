@@ -3,10 +3,13 @@ import { apiClient } from "@/lib/api";
 
 type Script = {
   id: string;
+  title?: string;
   topic: string;
   videoType: string;
-  content: string;
+  content?: string;
   status: string;
+  wordCount?: number;
+  modelUsed?: string;
   createdAt: string;
   updatedAt: string;
 };
