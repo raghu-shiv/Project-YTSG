@@ -9,6 +9,7 @@ type Script = {
   content?: string;
   outline?: any;
   seoSuggestions?: any;
+  thumbnailConcepts?: any;
   status: string;
   wordCount?: number;
   modelUsed?: string;
