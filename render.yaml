@@ -19,6 +19,14 @@ services:
       - key: DATABASE_URL
         sync: false
 
+      # ── DIRECT_URL — Direct DB connection (port 5432, bypasses PgBouncer) ────
+      # Required for "prisma db push" to work with Supabase PgBouncer.
+      # Same credentials as DATABASE_URL but with port 5432 and WITHOUT pgBouncer=true.
+      # Get it from Supabase Dashboard → Project Settings → Database → Direct connection
+      # Example: postgresql://postgres.xxxxx:[YOUR-PASSWORD]@aws-0-ap-south-1.pooler.supabase.com:5432/postgres?schema=public
+      - key: DIRECT_URL
+        sync: false
+
       # ─── Upstash Redis ──────────────────────────────────────────────────────
       # Get these from Upstash Console → Your Database → REST API
       # Example: REDIS_HOST=us1-adequate-lion-12345.upstash.io
