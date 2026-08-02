@@ -134,7 +134,10 @@ export default function AuthPage() {
       }
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message || (mode === "login" ? "Login failed" : "Registration failed"));
+      setError(
+        err.message ||
+          (mode === "login" ? "Login failed" : "Registration failed"),
+      );
     } finally {
       setLoading(false);
     }
@@ -157,7 +160,7 @@ export default function AuthPage() {
               <span className="text-white font-bold text-xs">YS</span>
             </div>
             <span className="font-semibold text-gray-900">
-              YouTube Script<span className="text-indigo-600">Generator</span>
+              YT<span className="text-indigo-600">Scripts</span>
             </span>
           </Link>
         </div>
@@ -180,7 +183,10 @@ export default function AuthPage() {
             {/* Mode Toggle */}
             <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6">
               <button
-                onClick={() => { setMode("login"); setError(""); }}
+                onClick={() => {
+                  setMode("login");
+                  setError("");
+                }}
                 className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                   mode === "login"
                     ? "bg-white text-gray-900 shadow-sm"
@@ -190,7 +196,10 @@ export default function AuthPage() {
                 Sign In
               </button>
               <button
-                onClick={() => { setMode("register"); setError(""); }}
+                onClick={() => {
+                  setMode("register");
+                  setError("");
+                }}
                 className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                   mode === "register"
                     ? "bg-white text-gray-900 shadow-sm"
@@ -221,8 +230,18 @@ export default function AuthPage() {
               {error && (
                 <div className="p-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl">
                   <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-4 h-4 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     <span>{error}</span>
                   </div>
@@ -253,7 +272,11 @@ export default function AuthPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={mode === "register" ? "Create a strong password" : "Enter your password"}
+                placeholder={
+                  mode === "register"
+                    ? "Create a strong password"
+                    : "Enter your password"
+                }
                 required
                 minLength={mode === "register" ? 6 : undefined}
               />
