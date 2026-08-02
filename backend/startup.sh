@@ -6,9 +6,9 @@ echo "PORT=${PORT:-not set}"
 npx prisma generate 2>&1
 echo "✓ Prisma client generated"
 
-# Push schema to database (with 30s timeout to prevent hanging on PgBouncer)
+# Push schema to database (with 120s timeout for Supabase PgBouncer)
 echo "✓ Pushing schema to database..."
-timeout 30 npx prisma db push --accept-data-loss 2>&1
+timeout 120 npx prisma db push --accept-data-loss 2>&1
 echo "✓ Schema push complete"
 
 echo "✓ Starting app..."
