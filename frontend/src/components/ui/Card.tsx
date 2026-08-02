@@ -4,7 +4,7 @@ import { HTMLAttributes, forwardRef } from "react";
 import clsx from "clsx";
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "bordered" | "elevated";
+  variant?: "default" | "bordered" | "elevated" | "outlined";
   padding?: "none" | "sm" | "md" | "lg";
 }
 
@@ -12,6 +12,7 @@ const cardVariants = {
   default: "bg-white shadow-sm border border-gray-200",
   bordered: "bg-white border-2 border-indigo-100",
   elevated: "bg-white shadow-lg border border-gray-100",
+  outlined: "bg-white border border-gray-200",
 };
 
 const paddings = {
