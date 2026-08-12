@@ -29,6 +29,7 @@ export default function ScriptDetailPage() {
   // Thumbnail generation state
   const [generatingThumbnails, setGeneratingThumbnails] = useState(false);
   const [thumbnailError, setThumbnailError] = useState("");
+  const [zoomedImage, setZoomedImage] = useState<{ url: string; index: number } | null>(null);
 
   // Use a ref to prevent polling from being affected by effect re-runs
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -101,6 +102,14 @@ export default function ScriptDetailPage() {
     } finally {
       setGeneratingThumbnails(false);
     }
+  };
+
+  const handleDownloadImage = (url: string, index: number) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `thumbnail-${index + 1}.png`;
+    a.target = "_blank";
+    a.click();
   };
 
   const scriptCredits = user?.scriptCredits ?? 0;
@@ -479,13 +488,31 @@ export default function ScriptDetailPage() {
                         key={i}
                         className="p-4 bg-gray-50 rounded-xl border border-gray-200"
                       >
-                        <div className="w-full aspect-video bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                        <div className="relative w-full aspect-video bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg mb-3 flex items-center justify-center overflow-hidden group">
                           {concept.imageUrl ? (
-                            <img
-                              src={concept.imageUrl}
-                              alt={`Thumbnail concept ${i + 1}`}
-                              className="w-full h-full object-cover"
-                            />
+                            <>
+                              <img
+                                src={concept.imageUrl}
+                                alt={`Thumbnail concept ${i + 1}`}
+                                className="w-full h-full object-cover cursor-zoom-in"
+                                onClick={() => setZoomedImage({ url: concept.imageUrl, index: i })}
+                              />
+                              {/* Hover overlay with download button */}
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadImage(concept.imageUrl, i);
+                                  }}
+                                  className="p-2.5 bg-white rounded-full shadow-lg text-gray-700 hover:text-indigo-600 transition-colors"
+                                  title="Download thumbnail"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </>
                           ) : (
                             <span className="text-4xl">🎨</span>
                           )}
@@ -542,6 +569,47 @@ export default function ScriptDetailPage() {
               </div>
             )}
           </Card>
+        </div>
+      )}
+
+      {/* Zoom/Lightbox Modal */}
+      {zoomedImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 md:p-8"
+          onClick={() => setZoomedImage(null)}
+        >
+          {/* Close button */}
+          <button
+            onClick={() => setZoomedImage(null)}
+            className="absolute top-4 right-4 p-2.5 text-white/70 hover:text-white bg-black/30 hover:bg-black/50 rounded-full transition-colors z-10"
+            title="Close"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Download button for zoomed image */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownloadImage(zoomedImage.url, zoomedImage.index);
+            }}
+            className="absolute top-4 right-16 p-2.5 text-white/70 hover:text-white bg-black/30 hover:bg-black/50 rounded-full transition-colors z-10"
+            title="Download thumbnail"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+          </button>
+
+          {/* Image */}
+          <img
+            src={zoomedImage.url}
+            alt={`Thumbnail ${zoomedImage.index + 1}`}
+            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
 
