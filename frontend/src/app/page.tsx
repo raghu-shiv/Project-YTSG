@@ -41,16 +41,28 @@ export default function Home() {
             aria-label="Main navigation"
           >
             <Link
-              href="#features"
-              className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              href="/"
+              className="text-sm text-indigo-600 transition-colors"
             >
-              Features
+              Home
             </Link>
             <Link
-              href="#pricing"
+              href="/about"
               className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
             >
-              Pricing
+              About
+            </Link>
+            <Link
+              href="/help"
+              className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Help Center
+            </Link>
+            <Link
+              href="/contact"
+              className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
+            >
+              Contact
             </Link>
           </nav>
 
