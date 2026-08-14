@@ -49,7 +49,7 @@ services:
 
       # ─── Frontend URL ───────────────────────────────────────────────────────
       - key: FRONTEND_URL
-        value: https://youtube-script-generator.vercel.app
+        value: https://www.yt-scripts.online
 
       # ─── Razorpay ───────────────────────────────────────────────────────────
       - key: RAZORPAY_KEY_ID

@@ -52,6 +52,8 @@ services:
       REDIS_TLS_ENABLED: "false"
       # Production: Set REDIS_HOST/REDIS_PORT/REDIS_PASSWORD from Upstash REST API details
       # Production: Set REDIS_TLS_ENABLED=true (Upstash requires TLS)
+      # DIRECT_URL bypasses PgBouncer for Prisma schema operations (DDL)
+      DIRECT_URL: postgresql://ysg_user:ysg_pass@postgres:5432/ysg_db?schema=public
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}

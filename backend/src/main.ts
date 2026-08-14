@@ -15,26 +15,30 @@ async function bootstrap() {
     // Security
     app.use(helmet());
 
-    // CORS — allow FRONTEND_URL, Vercel previews, and localhost
+    // CORS — allow known origins only
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     const allowedOrigins = [
-      process.env.FRONTEND_URL || "http://localhost:3000",
+      frontendUrl,
+      "https://www.yt-scripts.online",
+      "https://yt-scripts.online",
       "http://localhost:3000",
       "http://localhost:4000",
-    ].filter(Boolean);
+    ];
 
     app.enableCors({
       origin: (origin, callback) => {
         // Allow requests with no origin (server-to-server, curl, etc.)
         if (!origin) return callback(null, true);
         // Allow if matches any allowed origin
-        if (allowedOrigins.some((o) => origin.startsWith(o) || origin.includes(o))) {
+        if (allowedOrigins.some((o) => origin.includes(o) || origin.startsWith(o))) {
           return callback(null, true);
         }
-        // Allow Vercel preview deployments
+        // Allow Vercel preview deployments (for dev/staging branches)
         if (origin.includes(".vercel.app")) {
           return callback(null, true);
         }
-        callback(null, true); // Allow all in production for now
+        // Reject unknown origins in production
+        callback(new Error("Not allowed by CORS"));
       },
       credentials: true,
     });

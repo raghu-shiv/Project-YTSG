@@ -16,7 +16,7 @@ RUN npm install && npm cache clean --force
 COPY prisma ./prisma
 COPY src ./src
 
-# Generate Prisma client
+# Generate Prisma client (generated in node_modules/@prisma/client)
 RUN npx prisma generate
 
 # Build the application
@@ -34,9 +34,14 @@ RUN apk add --no-cache openssl
 COPY package.json ./
 RUN npm install --omit=dev && npm cache clean --force
 
-# Copy built artifacts
+# Copy built artifacts and Prisma schema from builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+
+# Copy the generated Prisma client from builder's node_modules
+# This ensures the client matches the schema and is available at runtime
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
 # Copy startup script
 COPY startup.sh ./startup.sh

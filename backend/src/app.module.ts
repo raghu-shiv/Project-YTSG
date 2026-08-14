@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
 import { ScheduleModule } from "@nestjs/schedule";
+import { BullModule } from "@nestjs/bullmq";
 import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
 import { ScriptModule } from "./script/script.module";
@@ -21,6 +22,25 @@ import { ThrottleTierGuard } from "./common/guards/throttle-tier.guard";
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    BullModule.forRootAsync({
+      useFactory: () => {
+        const host = process.env.REDIS_HOST || "localhost";
+        const port = Number(process.env.REDIS_PORT || 6379);
+        const password = process.env.REDIS_PASSWORD || undefined;
+        const tlsEnabled = process.env.REDIS_TLS_ENABLED === "true";
+
+        return {
+          connection: {
+            host,
+            port,
+            ...(password ? { password } : {}),
+            ...(tlsEnabled ? { tls: {} } : {}),
+            retryStrategy: (times: number) => Math.min(times * 200, 2000),
+            maxRetriesPerRequest: null,
+          },
+        };
+      },
+    }),
     ThrottlerModule.forRoot([
       {
         ttl: 60000,

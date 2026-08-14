@@ -36,7 +36,10 @@ export class PrismaService
       await Promise.race([
         this.$connect(),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Database connection timed out after 15s")), 15000),
+          setTimeout(
+            () => reject(new Error("Database connection timed out after 15s")),
+            15000,
+          ),
         ),
       ]);
       this.logger.log("Connected to PostgreSQL database");
