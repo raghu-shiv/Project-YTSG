@@ -18,10 +18,10 @@ if [ "$NODE_ENV" = "production" ]; then
   echo "→ Running production migrations (migrate deploy)..."
   echo "   (Using DIRECT_URL if set to bypass PgBouncer for DDL operations)"
   if [ -n "$DIRECT_URL" ]; then
-    timeout 120 npx prisma migrate deploy --skip-generate 2>&1
+    timeout 120 npx prisma migrate deploy 2>&1
   else
     echo "   ⚠ DIRECT_URL not set — migrations may fail with PgBouncer"
-    timeout 120 npx prisma migrate deploy --skip-generate 2>&1
+    timeout 120 npx prisma migrate deploy 2>&1
   fi
   PRISMA_EXIT=$?
   if [ $PRISMA_EXIT -ne 0 ]; then
@@ -36,10 +36,10 @@ else
   echo "→ Development mode: pushing schema to database..."
   echo "   (Using DIRECT_URL if set to bypass PgBouncer for DDL operations)"
   if [ -n "$DIRECT_URL" ]; then
-    timeout 120 npx prisma db push --accept-data-loss --skip-generate 2>&1
+    timeout 120 npx prisma db push --accept-data-loss 2>&1
   else
     echo "   ⚠ DIRECT_URL not set — schema push may fail with PgBouncer"
-    timeout 120 npx prisma db push --accept-data-loss --skip-generate 2>&1
+    timeout 120 npx prisma db push --accept-data-loss 2>&1
   fi
   PRISMA_EXIT=$?
   if [ $PRISMA_EXIT -ne 0 ]; then
