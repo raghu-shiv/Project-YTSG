@@ -281,6 +281,17 @@ export default function AuthPage() {
                 minLength={mode === "register" ? 6 : undefined}
               />
 
+              {mode === "login" && (
+                <div className="-mt-2 flex justify-end">
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-sm font-medium text-indigo-600 transition-colors hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+              )}
+
               <Button
                 type="submit"
                 loading={loading}

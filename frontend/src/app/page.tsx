@@ -485,6 +485,27 @@ export default function Home() {
                     </Link>
                   </li>
                 </ul>
+
+                <Link
+                  href="/terms"
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Terms & Conditions
+                </Link>
+
+                <Link
+                  href="/privacy"
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Privacy Policy
+                </Link>
+
+                <Link
+                  href="/cancellation-refund"
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Cancellation & Refund
+                </Link>
               </div>
             </div>
             <div className="border-t border-gray-200 pt-8 text-center text-sm text-gray-400">

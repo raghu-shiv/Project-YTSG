@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://youtubegenerator.vercel.app";
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://youtubegenerator.vercel.app";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
@@ -62,6 +63,25 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${siteUrl}/dashboard/settings`,
       lastModified: new Date(),
       changeFrequency: "monthly",
+      priority: 0.4,
+    },
+
+    {
+      url: `${siteUrl}/terms`,
+      lastModified: new Date(),
+      changeFrequency: "yearly",
+      priority: 0.4,
+    },
+    {
+      url: `${siteUrl}/privacy`,
+      lastModified: new Date(),
+      changeFrequency: "yearly",
+      priority: 0.4,
+    },
+    {
+      url: `${siteUrl}/cancellation-refund`,
+      lastModified: new Date(),
+      changeFrequency: "yearly",
       priority: 0.4,
     },
   ];
