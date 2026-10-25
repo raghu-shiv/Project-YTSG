@@ -37,7 +37,9 @@ describe("LazySection", () => {
         <div>Content</div>
       </LazySection>,
     );
-    const wrapper = container.firstChild;
-    expect(wrapper?.className).toContain("test-class");
+
+    const wrapper = container.firstElementChild;
+    expect(wrapper).toBeInstanceOf(HTMLElement);
+    expect(wrapper).toHaveClass("test-class");
   });
 });

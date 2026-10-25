@@ -10,19 +10,25 @@ describe("Card", () => {
 
   it("applies variant classes", () => {
     const { container } = render(<Card variant="elevated">Elevated</Card>);
-    const card = container.firstChild;
-    expect(card?.className).toContain("shadow-lg");
+
+    const card = container.firstElementChild;
+    expect(card).toBeInstanceOf(HTMLElement);
+    expect(card).toHaveClass("shadow-lg");
   });
 
   it("applies padding classes", () => {
     const { container } = render(<Card padding="sm">Small padding</Card>);
-    const card = container.firstChild;
-    expect(card?.className).toContain("p-4");
+
+    const card = container.firstElementChild;
+    expect(card).toBeInstanceOf(HTMLElement);
+    expect(card).toHaveClass("p-4");
   });
 
   it("applies custom className", () => {
     const { container } = render(<Card className="custom-class">Custom</Card>);
-    const card = container.firstChild;
-    expect(card?.className).toContain("custom-class");
+
+    const card = container.firstElementChild;
+    expect(card).toBeInstanceOf(HTMLElement);
+    expect(card).toHaveClass("custom-class");
   });
 });

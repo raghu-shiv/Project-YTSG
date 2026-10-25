@@ -10,13 +10,17 @@ describe("Badge", () => {
 
   it("applies color variant classes", () => {
     const { container } = render(<Badge variant="success">Success</Badge>);
-    const badge = container.firstChild;
-    expect(badge?.className).toContain("bg-emerald");
+
+    const badge = container.firstElementChild;
+    expect(badge).toBeInstanceOf(HTMLElement);
+    expect(badge).toHaveClass("bg-emerald");
   });
 
   it("applies default variant", () => {
     const { container } = render(<Badge>Default</Badge>);
-    const badge = container.firstChild;
-    expect(badge?.className).toContain("bg-gray-100");
+
+    const badge = container.firstElementChild;
+    expect(badge).toBeInstanceOf(HTMLElement);
+    expect(badge).toHaveClass("bg-gray-100");
   });
 });
