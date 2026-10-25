@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Providers } from "@/components/Providers";
+import Footer from "@/components/Footer";
 import "./globals.css";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://youtubegenerator.vercel.app";
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://youtubegenerator.vercel.app";
 
 export const metadata: Metadata = {
   title: {
@@ -147,15 +149,36 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         {/* DNS prefetch for API and AI services */}
-        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"} />
-        <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"} crossOrigin="anonymous" />
+        <link
+          rel="dns-prefetch"
+          href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}
+        />
+        <link
+          rel="preconnect"
+          href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}
+          crossOrigin="anonymous"
+        />
         <link rel="dns-prefetch" href="https://openrouter.ai" />
-        <link rel="preconnect" href="https://openrouter.ai" crossOrigin="anonymous" />
+        <link
+          rel="preconnect"
+          href="https://openrouter.ai"
+          crossOrigin="anonymous"
+        />
         <link rel="dns-prefetch" href="https://lh3.googleusercontent.com" />
-        <link rel="preconnect" href="https://lh3.googleusercontent.com" crossOrigin="anonymous" />
+        <link
+          rel="preconnect"
+          href="https://lh3.googleusercontent.com"
+          crossOrigin="anonymous"
+        />
       </head>
-      <body>
-        <Providers>{children}</Providers>
+
+      <body className="min-h-screen">
+        <Providers>
+          <div className="flex min-h-screen flex-col">
+            <div className="flex-1">{children}</div>
+            <Footer />
+          </div>
+        </Providers>
       </body>
     </html>
   );
