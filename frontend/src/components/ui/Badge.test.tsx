@@ -13,7 +13,7 @@ describe("Badge", () => {
 
     const badge = container.firstElementChild;
     expect(badge).toBeInstanceOf(HTMLElement);
-    expect(badge).toHaveClass("bg-emerald");
+    expect(badge).toHaveClass("bg-emerald-50");
   });
 
   it("applies default variant", () => {

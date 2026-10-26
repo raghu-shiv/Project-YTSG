@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import "./globals.css";
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://youtubegenerator.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://www.yt-scripts.online";
 
 export const metadata: Metadata = {
   title: {
@@ -151,11 +151,17 @@ export default function RootLayout({
         {/* DNS prefetch for API and AI services */}
         <link
           rel="dns-prefetch"
-          href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}
+          href={
+            process.env.NEXT_PUBLIC_API_URL ||
+            "https://yt-scripts-backend.onrender.com"
+          }
         />
         <link
           rel="preconnect"
-          href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}
+          href={
+            process.env.NEXT_PUBLIC_API_URL ||
+            "https://yt-scripts-backend.onrender.com"
+          }
           crossOrigin="anonymous"
         />
         <link rel="dns-prefetch" href="https://openrouter.ai" />

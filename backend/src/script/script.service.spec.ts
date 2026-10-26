@@ -3,11 +3,16 @@ import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { ScriptService } from "./script.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { AiProviderService } from "../ai-provider/ai-provider.service";
+import { ScriptGenerationService } from "@/queue/script-generation.service";
 
 describe("ScriptService", () => {
   let scriptService: ScriptService;
   let prisma: any;
   let aiProvider: any;
+
+  const mockQueueService = {
+    enqueue: jest.fn().mockResolvedValue(undefined),
+  };
 
   const mockPrisma = {
     script: {
@@ -47,6 +52,10 @@ describe("ScriptService", () => {
         ScriptService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: AiProviderService, useValue: mockAiProvider },
+        {
+          provide: ScriptGenerationService,
+          useValue: mockQueueService,
+        },
       ],
     }).compile();
 
@@ -92,6 +101,7 @@ describe("ScriptService", () => {
       expect(result.id).toBe("script-1");
       expect(result.status).toBe("generating");
       expect(mockPrisma.creditTransaction.create).toHaveBeenCalled();
+      expect(mockQueueService.enqueue).toHaveBeenCalled();
     });
 
     it("should throw BadRequestException when user has insufficient credits", async () => {

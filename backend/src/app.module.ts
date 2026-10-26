@@ -24,7 +24,7 @@ import { ThrottleTierGuard } from "./common/guards/throttle-tier.guard";
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({
       useFactory: () => {
-        const host = process.env.REDIS_HOST || "localhost";
+        const host = process.env.REDIS_HOST || "";
         const port = Number(process.env.REDIS_PORT || 6379);
         const password = process.env.REDIS_PASSWORD || undefined;
         const tlsEnabled = process.env.REDIS_TLS_ENABLED === "true";

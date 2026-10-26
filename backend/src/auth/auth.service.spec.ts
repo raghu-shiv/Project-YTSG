@@ -1,9 +1,14 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { ConflictException, UnauthorizedException, ForbiddenException } from "@nestjs/common";
+import {
+  ConflictException,
+  UnauthorizedException,
+  ForbiddenException,
+} from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
 import { AuthService } from "./auth.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { EmailService } from "@/email/email.service";
 
 describe("AuthService", () => {
   let authService: AuthService;
@@ -31,6 +36,12 @@ describe("AuthService", () => {
         AuthService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwtService },
+        {
+          provide: EmailService,
+          useValue: {
+            sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 
@@ -55,7 +66,11 @@ describe("AuthService", () => {
       });
       mockPrisma.creditTransaction.create.mockResolvedValue({});
 
-      const result = await authService.register("test@example.com", "password123", "Test User");
+      const result = await authService.register(
+        "test@example.com",
+        "password123",
+        "Test User",
+      );
 
       expect(result.user.email).toBe("test@example.com");
       expect(result.user.scriptCredits).toBe(2);
@@ -83,7 +98,10 @@ describe("AuthService", () => {
     });
 
     it("should throw ConflictException when email already exists", async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ id: "existing", email: "test@example.com" });
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: "existing",
+        email: "test@example.com",
+      });
 
       await expect(
         authService.register("test@example.com", "password123"),
@@ -103,7 +121,10 @@ describe("AuthService", () => {
       });
       mockPrisma.creditTransaction.create.mockResolvedValue({});
 
-      const result = await authService.register("user@example.com", "password123");
+      const result = await authService.register(
+        "user@example.com",
+        "password123",
+      );
 
       expect(mockPrisma.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -177,7 +198,10 @@ describe("AuthService", () => {
         thumbnailCredits: 5,
       });
 
-      const result = await authService.makeAdmin("user-1", "super-secret-admin-key");
+      const result = await authService.makeAdmin(
+        "user-1",
+        "super-secret-admin-key",
+      );
 
       expect(result.user.role).toBe("admin");
       expect(mockPrisma.user.update).toHaveBeenCalledWith(
@@ -197,9 +221,9 @@ describe("AuthService", () => {
     it("should throw ForbiddenException when ADMIN_SECRET_KEY is not configured", async () => {
       delete process.env.ADMIN_SECRET_KEY;
 
-      await expect(
-        authService.makeAdmin("user-1", "any-key"),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(authService.makeAdmin("user-1", "any-key")).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

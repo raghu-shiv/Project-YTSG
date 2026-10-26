@@ -61,7 +61,8 @@ export class AiProviderService {
     return {
       Authorization: `Bearer ${this.apiKey}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": process.env.FRONTEND_URL || "http://localhost:3000",
+      "HTTP-Referer":
+        process.env.FRONTEND_URL || "https://www.yt-scripts.online",
       "X-Title": "YT Scripts",
     };
   }
@@ -211,34 +212,61 @@ export class AiProviderService {
 
           // Image can be a data URL string directly
           if (typeof imageItem === "string") {
-            return { url: imageItem, model, costUsd: data.usage?.cost || 0.0001 };
+            return {
+              url: imageItem,
+              model,
+              costUsd: data.usage?.cost || 0.0001,
+            };
           }
 
           // Standard format: { type: "image_url", image_url: { url: "data:..." } }
           if (imageItem.image_url) {
-            const imgUrl = typeof imageItem.image_url === "string" ? imageItem.image_url : imageItem.image_url.url;
+            const imgUrl =
+              typeof imageItem.image_url === "string"
+                ? imageItem.image_url
+                : imageItem.image_url.url;
             if (imgUrl) {
-              return { url: imgUrl, model, costUsd: data.usage?.cost || 0.0001 };
+              return {
+                url: imgUrl,
+                model,
+                costUsd: data.usage?.cost || 0.0001,
+              };
             }
           }
 
           // Direct url field
           if (imageItem.url) {
-            return { url: imageItem.url, model, costUsd: data.usage?.cost || 0.0001 };
+            return {
+              url: imageItem.url,
+              model,
+              costUsd: data.usage?.cost || 0.0001,
+            };
           }
 
           // Base64 fields
           if (imageItem.b64_json || imageItem.base64) {
             const b64 = imageItem.b64_json || imageItem.base64;
-            return { url: `data:image/png;base64,${b64}`, model, costUsd: data.usage?.cost || 0.0001 };
+            return {
+              url: `data:image/png;base64,${b64}`,
+              model,
+              costUsd: data.usage?.cost || 0.0001,
+            };
           }
 
           // Other common field names
           if (imageItem.data) {
-            return { url: `data:image/png;base64,${imageItem.data}`, model, costUsd: data.usage?.cost || 0.0001 };
+            return {
+              url: `data:image/png;base64,${imageItem.data}`,
+              model,
+              costUsd: data.usage?.cost || 0.0001,
+            };
           }
           if (imageItem.image) {
-            return { url: imageItem.image, model, costUsd: data.usage?.cost || 0.0001 };
+            return {
+              url: imageItem.image,
+              model,
+              costUsd: data.usage?.cost || 0.0001,
+            };
           }
         }
       }
@@ -249,14 +277,22 @@ export class AiProviderService {
           (part: any) => part.type === "image_url" && part.image_url?.url,
         );
         if (imagePart) {
-          return { url: imagePart.image_url.url, model, costUsd: data.usage?.cost || 0.0001 };
+          return {
+            url: imagePart.image_url.url,
+            model,
+            costUsd: data.usage?.cost || 0.0001,
+          };
         }
       }
 
       // Fallback: check for base64-encoded image attached to the message
       if (message.base64_image || message.b64_json) {
         const b64 = message.base64_image || message.b64_json;
-        return { url: `data:image/png;base64,${b64}`, model, costUsd: data.usage?.cost || 0.0001 };
+        return {
+          url: `data:image/png;base64,${b64}`,
+          model,
+          costUsd: data.usage?.cost || 0.0001,
+        };
       }
 
       // Log the available keys to help debug

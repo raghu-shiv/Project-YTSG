@@ -7,16 +7,16 @@ interface JwtPayload {
   sub: string;
   email: string;
   role: string;
+  ver?: number;
 }
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private prisma: PrismaService) {
+  constructor(private readonly prisma: PrismaService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey:
-        process.env.JWT_SECRET || "dev-jwt-secret-change-in-production",
+      secretOrKey: process.env.JWT_SECRET,
     });
   }
 
@@ -30,13 +30,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         role: true,
         scriptCredits: true,
         thumbnailCredits: true,
+        tokenVersion: true,
       },
     });
 
-    if (!user) {
-      throw new UnauthorizedException("User not found");
+    if (!user || payload.ver !== user.tokenVersion) {
+      throw new UnauthorizedException("Invalid or expired token");
     }
 
-    return user;
+    const { tokenVersion: _tokenVersion, ...safeUser } = user;
+    return safeUser;
   }
 }

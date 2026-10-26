@@ -16,7 +16,8 @@ async function bootstrap() {
     app.use(helmet());
 
     // CORS — allow known origins only
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    const frontendUrl =
+      process.env.FRONTEND_URL || "https://www.yt-scripts.online";
     const allowedOrigins = [
       frontendUrl,
       "https://www.yt-scripts.online",
@@ -30,7 +31,9 @@ async function bootstrap() {
         // Allow requests with no origin (server-to-server, curl, etc.)
         if (!origin) return callback(null, true);
         // Allow if matches any allowed origin
-        if (allowedOrigins.some((o) => origin.includes(o) || origin.startsWith(o))) {
+        if (
+          allowedOrigins.some((o) => origin.includes(o) || origin.startsWith(o))
+        ) {
           return callback(null, true);
         }
         // Allow Vercel preview deployments (for dev/staging branches)
